@@ -34,9 +34,12 @@ namespace vdvac {
 
 		bool loadRAWFile(const string& fileLocation, unsigned int x, unsigned int y, unsigned int z);
 		Mesh* createCube(const char* name);
+		void createCubeEdgesTexture();
 
 		unsigned char* volumeData;
 		unsigned int xsize, ysize, zsize;
+
+		unsigned int _cubeEdgesTexture;
 
 		float _proxyDistance;
 	};

@@ -83,6 +83,67 @@ Mesh* Tema1::createCube(const char* name)
 	return meshes[name];
 }
 
+void Tema1::createCubeEdgesTexture() {
+
+	glm::vec3 cubeEdges[24];
+	//see lookuptables from lab1 to identify the corners
+	//0-3
+	cubeEdges[0] =  glm::vec3(0, 0, 0);
+	cubeEdges[1] =  glm::vec3(0, 0, 1);
+	//1-2
+	cubeEdges[2] =  glm::vec3(1, 0, 0);
+	cubeEdges[3] =  glm::vec3(1, 0, 1);
+	//4-7
+	cubeEdges[4] =  glm::vec3(0, 1, 0);
+	cubeEdges[5] =  glm::vec3(0, 1, 1);
+	//5-6
+	cubeEdges[6] =  glm::vec3(1, 1, 0);
+	cubeEdges[7] =  glm::vec3(1, 1, 1);
+	//0-1
+	cubeEdges[8] =  glm::vec3(0, 0, 0);
+	cubeEdges[9] =  glm::vec3(1, 0, 0);
+	//4-5
+	cubeEdges[10] = glm::vec3(0, 1, 0);
+	cubeEdges[11] = glm::vec3(1, 1, 0);
+	//7-6
+	cubeEdges[12] = glm::vec3(0, 1, 1);
+	cubeEdges[13] = glm::vec3(1, 1, 1);
+	//3-2
+	cubeEdges[14] = glm::vec3(0, 0, 1);
+	cubeEdges[15] = glm::vec3(1, 0, 1);
+	//0-4
+	cubeEdges[16] = glm::vec3(0, 0, 0);
+	cubeEdges[17] = glm::vec3(0, 1, 0);
+	//1-5
+	cubeEdges[18] = glm::vec3(1, 0, 0);
+	cubeEdges[19] = glm::vec3(1, 1, 0);
+	//2-6
+	cubeEdges[20] = glm::vec3(1, 0, 1);
+	cubeEdges[21] = glm::vec3(1, 1, 1);
+	//3-7
+	cubeEdges[22] = glm::vec3(0, 0, 1);
+	cubeEdges[23] = glm::vec3(0, 1, 1);
+
+	glGenTextures(0, &_cubeEdgesTexture);
+	glBindTexture(GL_TEXTURE_2D, _cubeEdgesTexture);
+	//filtrare
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	if (GLEW_EXT_texture_filter_anisotropic) {
+		float maxAnisotropy;
+		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
+	}
+	//cand lucram cu texturi cu dimensiuni non multiple de 4 trebuie sa facem cititorul de randuri
+	//ce incarca texturile in OpenGL sa lucreze cu memorie aliniata la 1 (default este la 4)
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	float currentSlice[24];
+	
+}
 
 void Tema1::Init()
 {

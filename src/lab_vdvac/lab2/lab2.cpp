@@ -197,7 +197,7 @@ void lab2::Init()
     }
 
 
-    volumeTexture = createVolumeTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "brain.raw"), 200, 160, 160);
+    volumeTexture = createVolumeTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "head.raw"), 256, 256, 225);
    
     tfTexture = createTFTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES,"tff.dat"));
 }

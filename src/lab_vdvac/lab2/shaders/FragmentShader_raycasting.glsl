@@ -28,7 +28,8 @@ void main()
 
 	// TODO6
 	// calculeaza directia razei ca punctul de iesire minus punctul de intrare
-	vec3 dir = EntryPoint - ExitPoint;
+	vec3 dir = ExitPoint - EntryPoint;
+
 
 	// lungimea razei e calculata pentru terminarea razei
 	float len = length(dir);
