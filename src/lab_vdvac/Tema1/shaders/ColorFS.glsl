@@ -5,9 +5,11 @@ layout(location = 0) in vec2 tex_coord;
 
 uniform sampler2D textura1;
 
+in vec3 fragColor;
+
 void main() {
 
 
-	out_color = vec4(1);
+	out_color = vec4(fragColor,1);
 
 }

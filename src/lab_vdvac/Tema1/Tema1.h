@@ -42,5 +42,6 @@ namespace vdvac {
 		unsigned int _cubeEdgesTexture;
 
 		float _proxyDistance;
+		glm::vec3 _viewVec;
 	};
 }

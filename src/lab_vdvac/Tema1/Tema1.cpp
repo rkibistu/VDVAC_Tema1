@@ -88,20 +88,20 @@ void Tema1::createCubeEdgesTexture() {
 	glm::vec3 cubeEdges[24];
 	//see lookuptables from lab1 to identify the corners
 	//0-3
-	cubeEdges[0] =  glm::vec3(0, 0, 0);
-	cubeEdges[1] =  glm::vec3(0, 0, 1);
+	cubeEdges[0] = glm::vec3(0, 0, 0);
+	cubeEdges[1] = glm::vec3(0, 0, 1);
 	//1-2
-	cubeEdges[2] =  glm::vec3(1, 0, 0);
-	cubeEdges[3] =  glm::vec3(1, 0, 1);
+	cubeEdges[2] = glm::vec3(1, 0, 0);
+	cubeEdges[3] = glm::vec3(1, 0, 1);
 	//4-7
-	cubeEdges[4] =  glm::vec3(0, 1, 0);
-	cubeEdges[5] =  glm::vec3(0, 1, 1);
+	cubeEdges[4] = glm::vec3(0, 1, 0);
+	cubeEdges[5] = glm::vec3(0, 1, 1);
 	//5-6
-	cubeEdges[6] =  glm::vec3(1, 1, 0);
-	cubeEdges[7] =  glm::vec3(1, 1, 1);
+	cubeEdges[6] = glm::vec3(1, 1, 0);
+	cubeEdges[7] = glm::vec3(1, 1, 1);
 	//0-1
-	cubeEdges[8] =  glm::vec3(0, 0, 0);
-	cubeEdges[9] =  glm::vec3(1, 0, 0);
+	cubeEdges[8] = glm::vec3(0, 0, 0);
+	cubeEdges[9] = glm::vec3(1, 0, 0);
 	//4-5
 	cubeEdges[10] = glm::vec3(0, 1, 0);
 	cubeEdges[11] = glm::vec3(1, 1, 0);
@@ -142,14 +142,14 @@ void Tema1::createCubeEdgesTexture() {
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	float currentSlice[24];
-	
+
 }
 
 void Tema1::Init()
 {
 	ToggleGroundPlane();
 	auto camera = GetSceneCamera();
-	camera->SetPositionAndRotation(glm::vec3(2, 2, 2), glm::quat(glm::vec3(-30 * TO_RADIANS, 45 * TO_RADIANS, 0)));
+	camera->SetPositionAndRotation(glm::vec3(2, 2, 2), glm::quat(glm::vec3(-45 * TO_RADIANS, 45 * TO_RADIANS, 0)));
 	camera->Update();
 
 	loadRAWFile(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "engine.raw"), 256, 256, 256);
@@ -166,14 +166,15 @@ void Tema1::Init()
 		shader = new Shader("GeoemtryShader");
 		shader->AddShader(PATH_JOIN(shaderPath, "VertexShader.glsl"), GL_VERTEX_SHADER);
 		shader->AddShader(PATH_JOIN(shaderPath, "GeometryShader.glsl"), GL_GEOMETRY_SHADER);
-		shader->AddShader(PATH_JOIN(shaderPath, "FragmentShader.glsl"), GL_FRAGMENT_SHADER);
+		shader->AddShader(PATH_JOIN(shaderPath, "ColorFS.glsl"), GL_FRAGMENT_SHADER);
 		shader->CreateAndLink();
 		shaders[shader->GetName()] = shader;
 	}
 
 	Mesh* cube = createCube("cube");
 
-	_proxyDistance = 0.1f;
+	_proxyDistance = 2.3f;
+
 }
 
 void Tema1::FrameStart()
@@ -198,15 +199,14 @@ void Tema1::Update(float deltaTimeSeconds)
 		//Draw a polygon proxy
 		auto camera = GetSceneCamera();
 		glm::vec3 cameraPosition = camera->m_transform->GetWorldPosition();
-		glm::vec3 viewVector = glm::normalize(camera->m_transform->GetLocalOZVector());
+		_viewVec = glm::normalize(camera->m_transform->GetLocalOZVector());
 
-		_proxyDistance = 2.0f;
-		glm::vec3 proxyPointPosition = cameraPosition + -viewVector * _proxyDistance ;
+		glm::vec3 proxyPointPosition = cameraPosition + -_viewVec * _proxyDistance;
 
 		auto shader = shaders["GeoemtryShader"];
 		shader->Use();
 		glm::mat4 model_matrix = glm::mat4(1);
-		
+
 		GLint cameraPosUniform = shader->GetUniformLocation("cameraPos");
 		glUniform3fv(cameraPosUniform, 1, glm::value_ptr(cameraPosition));
 
@@ -237,6 +237,14 @@ void Tema1::OnInputUpdate(float deltaTime, int mods)
 void Tema1::OnKeyPress(int key, int mods)
 {
 	// add key press event
+	if (key == GLFW_KEY_SPACE) {
+		_proxyDistance += 0.1;
+	}
+	if (key == GLFW_KEY_X) {
+		_proxyDistance -= 0.1;
+		if (_proxyDistance < 0)
+			_proxyDistance = 0;
+	}
 };
 
 void Tema1::OnKeyRelease(int key, int mods)
