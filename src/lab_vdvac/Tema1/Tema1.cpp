@@ -51,15 +51,14 @@ Mesh* Tema1::createCube(const char* name)
 {
 	vector<VertexFormat> vertices
 	{
-		VertexFormat(glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)),
-		VertexFormat(glm::vec3(0, 0, 1), glm::vec3(0, 0, 1)),
-		VertexFormat(glm::vec3(0, 1, 0), glm::vec3(0, 1, 0)),
-		VertexFormat(glm::vec3(0, 1, 1), glm::vec3(0, 1, 1)),
-		VertexFormat(glm::vec3(1, 0, 0), glm::vec3(1, 0, 0)),
-		VertexFormat(glm::vec3(1, 0, 1), glm::vec3(1, 0, 1)),
-		VertexFormat(glm::vec3(1, 1, 0), glm::vec3(1, 1, 0)),
-		VertexFormat(glm::vec3(1, 1, 1), glm::vec3(1, 1, 1))
-
+		VertexFormat(glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)), // 0  -> 0 
+		VertexFormat(glm::vec3(0, 0, 1), glm::vec3(0, 0, 1)), // 3	-> 1
+		VertexFormat(glm::vec3(0, 1, 0), glm::vec3(0, 1, 0)), // 4	-> 2
+		VertexFormat(glm::vec3(0, 1, 1), glm::vec3(0, 1, 1)), // 7	-> 3
+		VertexFormat(glm::vec3(1, 0, 0), glm::vec3(1, 0, 0)), // 1	-> 4
+		VertexFormat(glm::vec3(1, 0, 1), glm::vec3(1, 0, 1)), // 2	-> 5
+		VertexFormat(glm::vec3(1, 1, 0), glm::vec3(1, 1, 0)), // 5 	-> 6
+		VertexFormat(glm::vec3(1, 1, 1), glm::vec3(1, 1, 1))  // 6	-> 7
 	};
 	vector<unsigned int> indices =
 	{
@@ -75,6 +74,39 @@ Mesh* Tema1::createCube(const char* name)
 		7, 6, 2,
 		1, 0, 4,
 		4, 5, 1
+	};
+
+	meshes[name] = new Mesh(name);
+	meshes[name]->InitFromData(vertices, indices);
+	return meshes[name];
+}
+Mesh* Tema1::createCubePerimeter(const char* name)
+{
+	vector<VertexFormat> vertices
+	{
+		VertexFormat(glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)), // 0  -> 0 
+		VertexFormat(glm::vec3(0, 0, 1), glm::vec3(0, 0, 1)), // 3	-> 1
+		VertexFormat(glm::vec3(0, 1, 0), glm::vec3(0, 1, 0)), // 4	-> 2
+		VertexFormat(glm::vec3(0, 1, 1), glm::vec3(0, 1, 1)), // 7	-> 3
+		VertexFormat(glm::vec3(1, 0, 0), glm::vec3(1, 0, 0)), // 1	-> 4
+		VertexFormat(glm::vec3(1, 0, 1), glm::vec3(1, 0, 1)), // 2	-> 5
+		VertexFormat(glm::vec3(1, 1, 0), glm::vec3(1, 1, 0)), // 5 	-> 6
+		VertexFormat(glm::vec3(1, 1, 1), glm::vec3(1, 1, 1))  // 6	-> 7
+	};
+	vector<unsigned int> indices =
+	{
+		0,4,
+		1,5,
+		0,1,
+		4,5,
+		2,6,
+		3,7,
+		2,3,
+		6,7,
+		3,1,
+		7,5,
+		4,6,
+		0,2
 	};
 
 	meshes[name] = new Mesh(name);
@@ -143,6 +175,31 @@ GLuint Tema1::createTFTexture(const string& fileLocation) {
 	return tff1DTex;
 }
 
+float Tema1::CalculateMaxDistanceToCube(glm::vec3 worldPosition) {
+
+	std::vector<glm::vec3> cubeCorners = {
+		glm::vec3(0, 0, 0),
+		glm::vec3(0, 0, 1),
+		glm::vec3(0, 1, 0),
+		glm::vec3(0, 1, 1),
+		glm::vec3(1, 0, 0),
+		glm::vec3(1, 0, 1),
+		glm::vec3(1, 1, 0),
+		glm::vec3(1, 1, 1)
+	};
+
+	float distance = 0;
+	float maxDistance = 0;
+	for (auto it = cubeCorners.begin(); it != cubeCorners.end(); it++) {
+
+		distance = glm::distance(worldPosition, *it);
+		if (distance > maxDistance) {
+			maxDistance = distance;
+		}
+	}
+
+	return maxDistance;
+}
 
 void Tema1::Init()
 {
@@ -172,8 +229,14 @@ void Tema1::Init()
 
 	Mesh* cube = createCube("cube");
 
-	_volumeTexture = createVolumeTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "head.raw"), 256, 256, 225);
+	Mesh* cubePerimeter = createCubePerimeter("cubePerimeter");
+	cubePerimeter->SetDrawMode(GL_LINES);
+
+	_volumeTexture = createVolumeTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "engine.raw"), 256, 256, 256);
 	_tfTexture = createTFTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "tff.dat"));
+
+	_proxyDistance = CalculateMaxDistanceToCube(GetSceneCamera()->m_transform->GetWorldPosition());
+	_proxyPass = 2.0 / _proxyEsantionsCount;
 }
 
 void Tema1::FrameStart()
@@ -191,27 +254,30 @@ void Tema1::Update(float deltaTimeSeconds)
 
 		glm::mat4 model_matrix = glm::mat4(1);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		RenderMesh(meshes["cube"], shader, model_matrix);
+		RenderMesh(meshes["cubePerimeter"], shader, model_matrix);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 	{
+		//Deseneaza volumul
+
 		//calculeaza vectorul de vizualizare
 		auto camera = GetSceneCamera();
 		glm::vec3 cameraPosition = camera->m_transform->GetWorldPosition();
 		_viewVec = glm::normalize(camera->m_transform->GetLocalOZVector());
-		//calculeaza pozitia unde vrei sa desenezi planul proxy
-		glm::vec3 proxyPointPosition = cameraPosition + -_viewVec * _proxyDistance;
+		
+		//calculeaza distanta celui mai indepartat vertex
+		//	de acolo vom incepe desenarea planelor
+		_proxyDistance = CalculateMaxDistanceToCube(GetSceneCamera()->m_transform->GetWorldPosition());
+
 
 		auto shader = shaders["GeoemtryShader"];
 		shader->Use();
 
-		//trimtie pozitia camerei (pentru a calcula vectorul de vizualizare)
 		GLint cameraPosUniform = shader->GetUniformLocation("cameraPos");
-		glUniform3fv(cameraPosUniform, 1, glm::value_ptr(cameraPosition));
-
-		//trimite punctul unde vrei sa desenezi planul de intersectie (pentru a calcula vectorul de vizualizare)
 		GLint proxyPointPosUniform = shader->GetUniformLocation("proxyPointPos");
-		glUniform3fv(proxyPointPosUniform, 1, glm::value_ptr(proxyPointPosition));
+
+		//trimtie pozitia camerei (pentru a calcula vectorul de vizualizare)
+		glUniform3fv(cameraPosUniform, 1, glm::value_ptr(cameraPosition));
 
 		//trimite textura 3D cu datele din volum
 		glActiveTexture(GL_TEXTURE0);
@@ -223,8 +289,22 @@ void Tema1::Update(float deltaTimeSeconds)
 		glBindTexture(GL_TEXTURE_1D, _tfTexture);
 		glUniform1i(glGetUniformLocation(shader->program, "TransferFunc"), 1);
 
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 		glm::mat4 model_matrix = glm::mat4(1);
-		RenderMesh(meshes["cube"], shader, model_matrix);
+		glm::vec3 proxyPointPosition;
+		float distance = _proxyDistance;
+		for (int i = 0; i < 256; i++) {
+
+			//trimite punctul unde vrei sa desenezi planul de intersectie
+			proxyPointPosition = cameraPosition + -_viewVec * distance;
+			glUniform3fv(proxyPointPosUniform, 1, glm::value_ptr(proxyPointPosition));
+			
+			RenderMesh(meshes["cube"], shader, model_matrix);
+
+			distance -= _proxyPass;
+		}
+		glDisable(GL_BLEND);
 	}
 
 }

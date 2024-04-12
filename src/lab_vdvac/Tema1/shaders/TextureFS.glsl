@@ -10,9 +10,18 @@ layout(location = 0) in vec3 out_pos;
 void main() {
 
 	float intensity;
-	vec4 color;
-	intensity = texture(VolumeTex, out_pos).x;
-	color = texture(TransferFunc, intensity);
-	out_color = color;
+	float alpha;
+	vec4 tex;
 
+	intensity = texture(VolumeTex, out_pos).x;
+	tex = texture(TransferFunc, intensity);
+
+
+	//tex.a = 1.0 - pow(1.0 - intensity.x, 0.001 * 200.0f);
+	//tex.rgb *= tex.a;
+	//out_color = tex;
+
+
+	alpha = intensity.x * 0.1;
+	out_color = vec4(intensity.x * alpha, intensity * alpha, intensity * alpha, alpha);
 }
