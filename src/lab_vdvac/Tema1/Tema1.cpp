@@ -1,12 +1,11 @@
 #include "Tema1.h"
 #include <vector>
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 using namespace vdvac;
 
-// Order of function calling can be seen in "Source/Core/World.cpp::LoopUpdate()"
-// https://github.com/UPB-Graphics/SPG-Framework/blob/master/Source/Core/World.cpp
 
 Tema1::Tema1()
 {
@@ -83,67 +82,67 @@ Mesh* Tema1::createCube(const char* name)
 	return meshes[name];
 }
 
-void Tema1::createCubeEdgesTexture() {
+GLuint Tema1::createVolumeTexture(const string& fileLocation, unsigned int x, unsigned int y, unsigned int z) {
 
-	glm::vec3 cubeEdges[24];
-	//see lookuptables from lab1 to identify the corners
-	//0-3
-	cubeEdges[0] = glm::vec3(0, 0, 0);
-	cubeEdges[1] = glm::vec3(0, 0, 1);
-	//1-2
-	cubeEdges[2] = glm::vec3(1, 0, 0);
-	cubeEdges[3] = glm::vec3(1, 0, 1);
-	//4-7
-	cubeEdges[4] = glm::vec3(0, 1, 0);
-	cubeEdges[5] = glm::vec3(0, 1, 1);
-	//5-6
-	cubeEdges[6] = glm::vec3(1, 1, 0);
-	cubeEdges[7] = glm::vec3(1, 1, 1);
-	//0-1
-	cubeEdges[8] = glm::vec3(0, 0, 0);
-	cubeEdges[9] = glm::vec3(1, 0, 0);
-	//4-5
-	cubeEdges[10] = glm::vec3(0, 1, 0);
-	cubeEdges[11] = glm::vec3(1, 1, 0);
-	//7-6
-	cubeEdges[12] = glm::vec3(0, 1, 1);
-	cubeEdges[13] = glm::vec3(1, 1, 1);
-	//3-2
-	cubeEdges[14] = glm::vec3(0, 0, 1);
-	cubeEdges[15] = glm::vec3(1, 0, 1);
-	//0-4
-	cubeEdges[16] = glm::vec3(0, 0, 0);
-	cubeEdges[17] = glm::vec3(0, 1, 0);
-	//1-5
-	cubeEdges[18] = glm::vec3(1, 0, 0);
-	cubeEdges[19] = glm::vec3(1, 1, 0);
-	//2-6
-	cubeEdges[20] = glm::vec3(1, 0, 1);
-	cubeEdges[21] = glm::vec3(1, 1, 1);
-	//3-7
-	cubeEdges[22] = glm::vec3(0, 0, 1);
-	cubeEdges[23] = glm::vec3(0, 1, 1);
+	loadRAWFile(fileLocation, x, y, z);
 
-	glGenTextures(0, &_cubeEdgesTexture);
-	glBindTexture(GL_TEXTURE_2D, _cubeEdgesTexture);
-	//filtrare
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	GLuint g_volTexObj;
+	glGenTextures(1, &g_volTexObj);
 
-	if (GLEW_EXT_texture_filter_anisotropic) {
-		float maxAnisotropy;
-		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
-	}
-	//cand lucram cu texturi cu dimensiuni non multiple de 4 trebuie sa facem cititorul de randuri
-	//ce incarca texturile in OpenGL sa lucreze cu memorie aliniata la 1 (default este la 4)
+	glBindTexture(GL_TEXTURE_3D, g_volTexObj);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-	float currentSlice[24];
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, xsize, ysize, zsize, 0, GL_RED, GL_UNSIGNED_BYTE, volumeData);
+	CheckOpenGLError();
+	cout << "Volume texture created" << endl;
+	return g_volTexObj;
 
 }
+
+GLuint Tema1::createTFTexture(const string& fileLocation) {
+	//se citesc datele functiei de transfer definite de utilizator
+	ifstream inFile(fileLocation.c_str(), ifstream::in);
+	if (!inFile)
+	{
+		cerr << "Error openning file: " << fileLocation << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	const int MAX_CNT = 10000;
+	GLubyte* tff = (GLubyte*)calloc(MAX_CNT, sizeof(GLubyte));
+	inFile.read(reinterpret_cast<char*>(tff), MAX_CNT);
+	if (inFile.eof())
+	{
+		size_t bytecnt = inFile.gcount();
+		*(tff + bytecnt) = '\0';
+		cout << "Functia de transfer: byte count = " << bytecnt << endl;
+
+	}
+	else if (inFile.fail())
+	{
+		cout << fileLocation << " nu s-a putut citi" << endl;
+	}
+	else
+	{
+		cout << fileLocation << " este prea mare" << endl;
+	}
+	GLuint tff1DTex;
+	glGenTextures(1, &tff1DTex);
+	glBindTexture(GL_TEXTURE_1D, tff1DTex);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA8, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, tff);
+	free(tff);
+	return tff1DTex;
+}
+
 
 void Tema1::Init()
 {
@@ -153,7 +152,7 @@ void Tema1::Init()
 	camera->Update();
 
 	loadRAWFile(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "engine.raw"), 256, 256, 256);
-
+	_proxyDistance = 2.3f;
 
 	std::string shaderPath = PATH_JOIN(window->props.selfDir, SOURCE_PATH::VDVAC, "Tema1", "shaders");
 	{
@@ -166,15 +165,15 @@ void Tema1::Init()
 		shader = new Shader("GeoemtryShader");
 		shader->AddShader(PATH_JOIN(shaderPath, "VertexShader.glsl"), GL_VERTEX_SHADER);
 		shader->AddShader(PATH_JOIN(shaderPath, "GeometryShader.glsl"), GL_GEOMETRY_SHADER);
-		shader->AddShader(PATH_JOIN(shaderPath, "ColorFS.glsl"), GL_FRAGMENT_SHADER);
+		shader->AddShader(PATH_JOIN(shaderPath, "TextureFS.glsl"), GL_FRAGMENT_SHADER);
 		shader->CreateAndLink();
 		shaders[shader->GetName()] = shader;
 	}
 
 	Mesh* cube = createCube("cube");
 
-	_proxyDistance = 2.3f;
-
+	_volumeTexture = createVolumeTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "head.raw"), 256, 256, 225);
+	_tfTexture = createTFTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "tff.dat"));
 }
 
 void Tema1::FrameStart()
@@ -196,25 +195,35 @@ void Tema1::Update(float deltaTimeSeconds)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 	{
-		//Draw a polygon proxy
+		//calculeaza vectorul de vizualizare
 		auto camera = GetSceneCamera();
 		glm::vec3 cameraPosition = camera->m_transform->GetWorldPosition();
 		_viewVec = glm::normalize(camera->m_transform->GetLocalOZVector());
-
+		//calculeaza pozitia unde vrei sa desenezi planul proxy
 		glm::vec3 proxyPointPosition = cameraPosition + -_viewVec * _proxyDistance;
 
 		auto shader = shaders["GeoemtryShader"];
 		shader->Use();
-		glm::mat4 model_matrix = glm::mat4(1);
 
+		//trimtie pozitia camerei (pentru a calcula vectorul de vizualizare)
 		GLint cameraPosUniform = shader->GetUniformLocation("cameraPos");
 		glUniform3fv(cameraPosUniform, 1, glm::value_ptr(cameraPosition));
 
-		//proxyPointPosition = glm::vec3(0, 0, 0);
-		//std::cout << proxyPointPosition << std::endl;
+		//trimite punctul unde vrei sa desenezi planul de intersectie (pentru a calcula vectorul de vizualizare)
 		GLint proxyPointPosUniform = shader->GetUniformLocation("proxyPointPos");
 		glUniform3fv(proxyPointPosUniform, 1, glm::value_ptr(proxyPointPosition));
 
+		//trimite textura 3D cu datele din volum
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_3D, _volumeTexture);
+		glUniform1i(glGetUniformLocation(shader->program, "VolumeTex"), 0);
+
+		//se trimite textura 1D cu functia de transfer
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_1D, _tfTexture);
+		glUniform1i(glGetUniformLocation(shader->program, "TransferFunc"), 1);
+
+		glm::mat4 model_matrix = glm::mat4(1);
 		RenderMesh(meshes["cube"], shader, model_matrix);
 	}
 
@@ -238,10 +247,10 @@ void Tema1::OnKeyPress(int key, int mods)
 {
 	// add key press event
 	if (key == GLFW_KEY_SPACE) {
-		_proxyDistance += 0.1;
+		_proxyDistance += 0.05;
 	}
 	if (key == GLFW_KEY_X) {
-		_proxyDistance -= 0.1;
+		_proxyDistance -= 0.05;
 		if (_proxyDistance < 0)
 			_proxyDistance = 0;
 	}

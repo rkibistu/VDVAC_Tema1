@@ -3,6 +3,8 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 30) out;
 
+layout (location = 0) out vec3 out_pos;
+
 uniform vec3 cameraPos;
 uniform vec3 proxyPointPos;
 
@@ -207,22 +209,28 @@ void renderPlane() {
 		if (i >= intersectionPointsCount - 1)
 			break;
 
+		fragColor = intersectionPoints[i];
 		gl_Position = Projection * View * (vec4(intersectionPoints[i], 1));
+		out_pos = intersectionPoints[i];
 		EmitVertex();
 		gl_Position = Projection * View * (vec4(intersectionPoints[i + 1], 1));
+		out_pos = intersectionPoints[i + 1];
 		EmitVertex();
 		gl_Position = Projection * View * (vec4(center, 1));
+		out_pos = center;
 		EmitVertex();
-		fragColor = intersectionPoints[i];
 		EndPrimitive();
 	}
 
 	fragColor = intersectionPoints[0];
 	gl_Position = Projection * View * (vec4(intersectionPoints[i], 1));
+	out_pos = intersectionPoints[i];
 	EmitVertex();
 	gl_Position = Projection * View * (vec4(intersectionPoints[0], 1));
+	out_pos = intersectionPoints[0];
 	EmitVertex();
 	gl_Position = Projection * View * (vec4(center, 1));
+	out_pos = center;
 	EmitVertex();
 	EndPrimitive();
 }

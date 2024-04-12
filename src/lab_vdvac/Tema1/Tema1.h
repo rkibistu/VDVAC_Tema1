@@ -34,7 +34,9 @@ namespace vdvac {
 
 		bool loadRAWFile(const string& fileLocation, unsigned int x, unsigned int y, unsigned int z);
 		Mesh* createCube(const char* name);
-		void createCubeEdgesTexture();
+		GLuint createVolumeTexture(const string& fileLocation, unsigned int x, unsigned int y, unsigned int z);
+		GLuint createTFTexture(const string& fileLocation);
+
 
 		unsigned char* volumeData;
 		unsigned int xsize, ysize, zsize;
@@ -43,5 +45,7 @@ namespace vdvac {
 
 		float _proxyDistance;
 		glm::vec3 _viewVec;
+		GLuint _volumeTexture;               //textura 3D (cu datele din volum)
+		GLuint _tfTexture;                   //textura 1D (cu functia de transfer)
 	};
 }
