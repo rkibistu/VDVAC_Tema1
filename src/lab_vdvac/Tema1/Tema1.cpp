@@ -201,6 +201,115 @@ float Tema1::CalculateMaxDistanceToCube(glm::vec3 worldPosition) {
 	return maxDistance;
 }
 
+void Tema1::DrawVolume() {
+	//calculeaza vectorul de vizualizare
+	auto camera = GetSceneCamera();
+	glm::vec3 cameraPosition = camera->m_transform->GetWorldPosition();
+	_viewVec = glm::normalize(camera->m_transform->GetLocalOZVector());
+
+	//calculeaza distanta celui mai indepartat vertex
+	//	de acolo vom incepe desenarea planelor
+	_proxyDistance = CalculateMaxDistanceToCube(GetSceneCamera()->m_transform->GetWorldPosition());
+
+
+	auto shader = shaders["GeoemtryShader"];
+	shader->Use();
+
+	GLint cameraPosUniform = shader->GetUniformLocation("cameraPos");
+	GLint proxyPointPosUniform = shader->GetUniformLocation("proxyPointPos");
+
+	//trimtie pozitia camerei (pentru a calcula vectorul de vizualizare)
+	glUniform3fv(cameraPosUniform, 1, glm::value_ptr(cameraPosition));
+
+	//trimite textura 3D cu datele din volum
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, _volumeTexture);
+	glUniform1i(glGetUniformLocation(shader->program, "VolumeTex"), 0);
+
+	//se trimite textura 1D cu functia de transfer
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_1D, _tfTexture);
+	glUniform1i(glGetUniformLocation(shader->program, "TransferFunc"), 1);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	glm::mat4 model_matrix = glm::mat4(1);
+	glm::vec3 proxyPointPosition;
+	float distance = _proxyDistance;
+	for (int i = 0; i < 256; i++) {
+
+		//trimite punctul unde vrei sa desenezi planul de intersectie
+		proxyPointPosition = cameraPosition + -_viewVec * distance;
+		glUniform3fv(proxyPointPosUniform, 1, glm::value_ptr(proxyPointPosition));
+
+		RenderMesh(meshes["cube"], shader, model_matrix);
+
+		distance -= _proxyPass;
+	}
+	glDisable(GL_BLEND);
+}
+
+void Tema1::DrawPlaneWithColors() {
+
+	//calculeaza vectorul de vizualizare
+	auto camera = GetSceneCamera();
+	glm::vec3 cameraPosition = camera->m_transform->GetWorldPosition();
+	_viewVec = glm::normalize(camera->m_transform->GetLocalOZVector());
+
+	auto shader = shaders["GeoemtryColorShader"];
+	shader->Use();
+
+	GLint cameraPosUniform = shader->GetUniformLocation("cameraPos");
+	GLint proxyPointPosUniform = shader->GetUniformLocation("proxyPointPos");
+
+	//trimtie pozitia camerei (pentru a calcula vectorul de vizualizare)
+	glUniform3fv(cameraPosUniform, 1, glm::value_ptr(cameraPosition));
+
+	glm::mat4 model_matrix = glm::mat4(1);
+	glm::vec3 proxyPointPosition;
+
+	//trimite punctul unde vrei sa desenezi planul de intersectie
+	proxyPointPosition = cameraPosition + -_viewVec * _proxyDistance;
+	glUniform3fv(proxyPointPosUniform, 1, glm::value_ptr(proxyPointPosition));
+
+	RenderMesh(meshes["cube"], shader, model_matrix);
+}
+
+void Tema1::DrawPlaneWithTextures() {
+	//calculeaza vectorul de vizualizare
+	auto camera = GetSceneCamera();
+	glm::vec3 cameraPosition = camera->m_transform->GetWorldPosition();
+	_viewVec = glm::normalize(camera->m_transform->GetLocalOZVector());
+
+	auto shader = shaders["GeoemtryTextureColorShader"];
+	shader->Use();
+
+	GLint cameraPosUniform = shader->GetUniformLocation("cameraPos");
+	GLint proxyPointPosUniform = shader->GetUniformLocation("proxyPointPos");
+
+	//trimtie pozitia camerei (pentru a calcula vectorul de vizualizare)
+	glUniform3fv(cameraPosUniform, 1, glm::value_ptr(cameraPosition));
+
+	//trimite textura 3D cu datele din volum
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, _volumeTexture);
+	glUniform1i(glGetUniformLocation(shader->program, "VolumeTex"), 0);
+
+	//se trimite textura 1D cu functia de transfer
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_1D, _tfTexture);
+	glUniform1i(glGetUniformLocation(shader->program, "TransferFunc"), 1);
+
+	glm::mat4 model_matrix = glm::mat4(1);
+	glm::vec3 proxyPointPosition;
+
+	//trimite punctul unde vrei sa desenezi planul de intersectie
+	proxyPointPosition = cameraPosition + -_viewVec * _proxyDistance;
+	glUniform3fv(proxyPointPosUniform, 1, glm::value_ptr(proxyPointPosition));
+
+	RenderMesh(meshes["cube"], shader, model_matrix);
+}
+
 void Tema1::Init()
 {
 	ToggleGroundPlane();
@@ -208,8 +317,7 @@ void Tema1::Init()
 	camera->SetPositionAndRotation(glm::vec3(2, 2, 2), glm::quat(glm::vec3(-45 * TO_RADIANS, 45 * TO_RADIANS, 0)));
 	camera->Update();
 
-	loadRAWFile(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "engine.raw"), 256, 256, 256);
-	_proxyDistance = 2.3f;
+	
 
 	std::string shaderPath = PATH_JOIN(window->props.selfDir, SOURCE_PATH::VDVAC, "Tema1", "shaders");
 	{
@@ -225,6 +333,20 @@ void Tema1::Init()
 		shader->AddShader(PATH_JOIN(shaderPath, "TextureFS.glsl"), GL_FRAGMENT_SHADER);
 		shader->CreateAndLink();
 		shaders[shader->GetName()] = shader;
+
+		shader = new Shader("GeoemtryColorShader");
+		shader->AddShader(PATH_JOIN(shaderPath, "VertexShader.glsl"), GL_VERTEX_SHADER);
+		shader->AddShader(PATH_JOIN(shaderPath, "GeometryShader.glsl"), GL_GEOMETRY_SHADER);
+		shader->AddShader(PATH_JOIN(shaderPath, "ColorFS.glsl"), GL_FRAGMENT_SHADER);
+		shader->CreateAndLink();
+		shaders[shader->GetName()] = shader;
+
+		shader = new Shader("GeoemtryTextureColorShader");
+		shader->AddShader(PATH_JOIN(shaderPath, "VertexShader.glsl"), GL_VERTEX_SHADER);
+		shader->AddShader(PATH_JOIN(shaderPath, "GeometryShader.glsl"), GL_GEOMETRY_SHADER);
+		shader->AddShader(PATH_JOIN(shaderPath, "TextureColorFS.glsl"), GL_FRAGMENT_SHADER);
+		shader->CreateAndLink();
+		shaders[shader->GetName()] = shader;
 	}
 
 	Mesh* cube = createCube("cube");
@@ -232,6 +354,7 @@ void Tema1::Init()
 	Mesh* cubePerimeter = createCubePerimeter("cubePerimeter");
 	cubePerimeter->SetDrawMode(GL_LINES);
 
+	loadRAWFile(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "engine.raw"), 256, 256, 256);
 	_volumeTexture = createVolumeTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "engine.raw"), 256, 256, 256);
 	_tfTexture = createTFTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "tff.dat"));
 
@@ -259,52 +382,21 @@ void Tema1::Update(float deltaTimeSeconds)
 	}
 	{
 		//Deseneaza volumul
-
-		//calculeaza vectorul de vizualizare
-		auto camera = GetSceneCamera();
-		glm::vec3 cameraPosition = camera->m_transform->GetWorldPosition();
-		_viewVec = glm::normalize(camera->m_transform->GetLocalOZVector());
-		
-		//calculeaza distanta celui mai indepartat vertex
-		//	de acolo vom incepe desenarea planelor
-		_proxyDistance = CalculateMaxDistanceToCube(GetSceneCamera()->m_transform->GetWorldPosition());
-
-
-		auto shader = shaders["GeoemtryShader"];
-		shader->Use();
-
-		GLint cameraPosUniform = shader->GetUniformLocation("cameraPos");
-		GLint proxyPointPosUniform = shader->GetUniformLocation("proxyPointPos");
-
-		//trimtie pozitia camerei (pentru a calcula vectorul de vizualizare)
-		glUniform3fv(cameraPosUniform, 1, glm::value_ptr(cameraPosition));
-
-		//trimite textura 3D cu datele din volum
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_3D, _volumeTexture);
-		glUniform1i(glGetUniformLocation(shader->program, "VolumeTex"), 0);
-
-		//se trimite textura 1D cu functia de transfer
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_1D, _tfTexture);
-		glUniform1i(glGetUniformLocation(shader->program, "TransferFunc"), 1);
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-		glm::mat4 model_matrix = glm::mat4(1);
-		glm::vec3 proxyPointPosition;
-		float distance = _proxyDistance;
-		for (int i = 0; i < 256; i++) {
-
-			//trimite punctul unde vrei sa desenezi planul de intersectie
-			proxyPointPosition = cameraPosition + -_viewVec * distance;
-			glUniform3fv(proxyPointPosUniform, 1, glm::value_ptr(proxyPointPosition));
-			
-			RenderMesh(meshes["cube"], shader, model_matrix);
-
-			distance -= _proxyPass;
+		switch (_mode)
+		{
+		case 1:
+			DrawVolume();
+			break;
+		case 2:
+			DrawPlaneWithColors();
+			break;
+		case 3:
+			DrawPlaneWithTextures();
+			break;
+		default:
+			break;
 		}
-		glDisable(GL_BLEND);
+
 	}
 
 }
@@ -327,12 +419,28 @@ void Tema1::OnKeyPress(int key, int mods)
 {
 	// add key press event
 	if (key == GLFW_KEY_SPACE) {
-		_proxyDistance += 0.05;
+		if (_mode != 1) {
+
+			_proxyDistance += 0.05;
+		}
 	}
 	if (key == GLFW_KEY_X) {
-		_proxyDistance -= 0.05;
-		if (_proxyDistance < 0)
-			_proxyDistance = 0;
+		if (_mode != 1) {
+
+			_proxyDistance -= 0.05;
+			if (_proxyDistance < 0)
+				_proxyDistance = 0;
+		}
+	}
+
+	if (key == GLFW_KEY_1) {
+		_mode = 1;
+	}
+	if (key == GLFW_KEY_2) {
+		_mode = 2;
+	}
+	if (key == GLFW_KEY_3) {
+		_mode = 3;
 	}
 };
 

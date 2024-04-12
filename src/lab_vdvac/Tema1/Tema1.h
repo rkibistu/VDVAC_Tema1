@@ -39,6 +39,10 @@ namespace vdvac {
 		GLuint createTFTexture(const string& fileLocation);
 		float CalculateMaxDistanceToCube(glm::vec3 worldPosition);
 
+		void DrawVolume();
+		void DrawPlaneWithColors();
+		void DrawPlaneWithTextures();
+
 		unsigned char* volumeData;
 		unsigned int xsize, ysize, zsize;
 
@@ -50,5 +54,10 @@ namespace vdvac {
 		glm::vec3 _viewVec;
 		GLuint _volumeTexture;               //textura 3D (cu datele din volum)
 		GLuint _tfTexture;                   //textura 1D (cu functia de transfer)
+	
+		// 1 - volume
+		// 2 - plane with colors
+		// 3 - plane with textures
+		int _mode = 1;
 	};
 }

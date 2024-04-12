@@ -4,7 +4,7 @@ layout(triangles) in;
 layout(triangle_strip, max_vertices = 30) out;
 
 layout (location = 0) out vec3 out_pos;
-
+layout (location = 1) out vec3 fragColor;
 uniform vec3 cameraPos;
 uniform vec3 proxyPointPos;
 
@@ -12,7 +12,6 @@ uniform mat4 Model;
 uniform mat4 View;
 uniform mat4 Projection;
 
-out vec3 fragColor;
 
 struct edge {
 	vec3 c0;
