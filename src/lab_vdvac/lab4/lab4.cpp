@@ -17,7 +17,7 @@ lab4::~lab4()
 {
 }
 
-Mesh* lab4::createQuad(const char *name)
+Mesh* lab4::createQuad(const char* name)
 {
 	//creeaza un quad mare cat NDC
 	vector<VertexFormat> vertices
@@ -39,7 +39,7 @@ Mesh* lab4::createQuad(const char *name)
 }
 
 
-void lab4::createNet(const string &path, const char *fileName)
+void lab4::createNet(const string& path, const char* fileName)
 {
 	int control_points_no;
 	int triangles_no;
@@ -50,10 +50,10 @@ void lab4::createNet(const string &path, const char *fileName)
 	vector<VertexFormat> vertices1, vertices2;
 	vector<unsigned int> indices;
 	ifstream f;
-	
+
 	f.open((path + (fileName ? (string("/") + fileName) : "")).c_str());
 	f >> control_points_no;
-	
+
 	//citire perechile de puncte de control din cele doua retele
 	for (int i = 0; i < control_points_no; i++)
 	{
@@ -73,7 +73,7 @@ void lab4::createNet(const string &path, const char *fileName)
 		vertices2.push_back(VertexFormat(v2));
 	}
 	f >> triangles_no;
-	
+
 	//citire triunghiurile formate
 	for (int i = 0; i < triangles_no * 3; i++)
 	{
@@ -109,13 +109,13 @@ void lab4::Init()
 		mesh->UseMaterials(false);
 	}
 
-	sourceImage = TextureManager::LoadTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex1/img1.png"), nullptr, "sourceImage", true, true);
-	interImage = TextureManager::LoadTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex1/img1.png"), nullptr, "interImage", true, true);
-	destImage = TextureManager::LoadTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex1/img2.png"), nullptr, "destImage", true, true);
-		
+	sourceImage = TextureManager::LoadTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex2/img1.png"), nullptr, "sourceImage", true, true);
+	interImage = TextureManager::LoadTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex2/img1.png"), nullptr, "interImage", true, true);
+	destImage = TextureManager::LoadTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex2/img2.png"), nullptr, "destImage", true, true);
+
 	sourceNet = new Mesh("sourceNet");
 	destNet = new Mesh("destNet");
-	createNet(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex1/net.txt"), nullptr);
+	createNet(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex2/net.txt"), nullptr);
 
 	interNet = new Mesh("interNet");
 	interNet->InitFromData(sourceNet->vertices, sourceNet->indices);
@@ -123,26 +123,33 @@ void lab4::Init()
 
 float Area(glm::vec2 v0, glm::vec2 v1, glm::vec2 v2)
 {
-	return abs((v0.x *(v1.y - v2.y) -v1.x * (v0.y - v2.y) + v2.x * (v0.y - v1.y))/2);
+	return abs((v0.x * (v1.y - v2.y) - v1.x * (v0.y - v2.y) + v2.x * (v0.y - v1.y)) / 2);
 }
 
 //intoarce true daca pozitia "pos" e in interiorul triunghiului v0v1v2 
 //si calculeaza coordonatele baricentrice
-bool Baricentric(glm::vec2 pos, glm::vec2 v0, glm::vec2 v1, glm::vec2 v2, float &u, float &v, float &w)
+bool Baricentric(glm::vec2 pos, glm::vec2 v0, glm::vec2 v1, glm::vec2 v2, float& u, float& v, float& w)
 {
-	float A_u = 0 , A_v = 0, A_w = 0, A = 0;
+	float A_u = 0, A_v = 0, A_w = 0, A = 0;
 	//TODO1 
 	//calculeaza ariile 
+	A_u = Area(v1, v2, pos);
+	A_v = Area(v0, v2, pos);
+	A_w = Area(v1, v0, pos);
+	A = Area(v0, v1, v2);
 
-	if (A_u + A_v + A_w > A+0.0001 && A>0.00001)
+	if (A_u + A_v + A_w > A + 0.0001 && A > 0.00001)
 		return false;
 	{
 		//TODO1 calculeaza u,v,w;
 		u = 0;
 		v = 0;
 		w = 0;
+		u = A_u / A;
+		v = A_v / A;
+		w = A_w / A;
 		return true;
-	}	
+	}
 }
 
 void lab4::ModifyImage(int crt_iteration, int iterations)
@@ -155,7 +162,8 @@ void lab4::ModifyImage(int crt_iteration, int iterations)
 	{
 		//TODO2
 		// calculeaza varfurile retelei intermediare prin interpolare
-		vertices[i].position = sourceNet->vertices[i].position; 
+		//slide 12
+		vertices[i].position = sourceNet->vertices[i].position * (1-ti) + destNet->vertices[i].position * ti;
 	}
 
 	unsigned int channels = sourceImage->GetNrChannels();
@@ -174,7 +182,7 @@ void lab4::ModifyImage(int crt_iteration, int iterations)
 	float u, v, w;
 	int isource, jsource;
 	int idest, jdest;
-	
+
 
 	for (int j = 0; j < imageSize.y; j++)
 	{
@@ -183,7 +191,7 @@ void lab4::ModifyImage(int crt_iteration, int iterations)
 			offset = channels * (j * imageSize.x + i);
 			pos.y = (float)(imageSize.y - j - 1) / imageSize.y;
 			pos.x = (float)i / imageSize.x;
-			
+
 			for (int k = 0; k < indices.size(); k += 3)
 			{
 				//TODO3
@@ -191,32 +199,49 @@ void lab4::ModifyImage(int crt_iteration, int iterations)
 				//care sunt varfurile din triunghiul curent in reteaua intermediara
 				//Atentie: indicii varfurilor din retele sunt pastrate in tabloul indices[]
 				//         iar k itereaza prin tabloudl indices[], nu prin tabloul vertices[] !!
-				
+
 				v0 = glm::vec2(0);
 				v1 = glm::vec2(0);
 				v2 = glm::vec2(0);
-				if (Baricentric(pos, v0, v1, v2,u,v,w))
+				v0 = vertices[indices[k]].position;
+				v1 = vertices[indices[k + 1]].position;
+				v2 = vertices[indices[k + 2]].position;
+
+				if (Baricentric(pos, v0, v1, v2, u, v, w))
 				{
-					
+
 					//TODO4
 					//calculeaza vsource0, vsource1 and vsource2,
 					//care sunt varfurile din triunghiul curent in reteaua sursa
-					
+
+
 					//calculeaza vdest0, vdest1 and vdest2,
 					//care sunt varfurile din triunghiul curent in reteaua destinatie
+
+
+					//are acelasi vector de indecsi, dar e in vectorul de varfuri din imaginea sursa
 					vsource0 = glm::vec2(0);
 					vsource1 = glm::vec2(0);
 					vsource2 = glm::vec2(0);
-					
+					vsource0 = sourceNet->vertices[sourceNet->indices[k]].position;
+					vsource1 = sourceNet->vertices[sourceNet->indices[k + 1]].position;
+					vsource2 = sourceNet->vertices[sourceNet->indices[k + 2]].position;
+
 					vdest0 = glm::vec2(0);
 					vdest1 = glm::vec2(0);
 					vdest2 = glm::vec2(0);
+					vdest0 = destNet->vertices[destNet->indices[k]].position;
+					vdest1 = destNet->vertices[destNet->indices[k + 1]].position;
+					vdest2 = destNet->vertices[destNet->indices[k + 2]].position;
 
 					//TODO5
 					//calculeaza posSource, corespondentul lui pos in reteaua sursa
 					//calculeaza posDest, corespondentul lui pos in reteaua destinatie
+					//vezi slide 23 -> formulelele de acolo
 					posSource = glm::vec2(0);
 					posDest = glm::vec2(0);
+					posSource = u * vsource0 + v * vsource1 + w * vsource2;
+					posDest = u * vdest0 + v * vdest1 + w * vdest2;
 
 					//se scaleaza la rezolutia imaginii
 					isource = posSource.x * imageSize.x + 0.5;
@@ -229,28 +254,28 @@ void lab4::ModifyImage(int crt_iteration, int iterations)
 					if (jsource < 0) jsource = 0;
 					if (idest < 0) idest = 0;
 					if (jdest < 0) jdest = 0;
-					if (isource >= imageSize.x) isource = imageSize.x -1;
+					if (isource >= imageSize.x) isource = imageSize.x - 1;
 					if (jsource >= imageSize.y) jsource = imageSize.y - 1;
 					if (idest >= imageSize.x) idest = imageSize.x - 1;
 					if (jdest >= imageSize.y) jdest = imageSize.y - 1;
 
 					offsetSource = channels * (jsource * imageSize.x + isource);
 					offsetDest = channels * (jdest * imageSize.x + idest);
-					
+
 					//TODO6
 					//calculeaza culoarea pentru pixelul curent in imaginea intermediara (prin interpolare)
 					//Atentie: canalele RGB se obtin prin offset, offset+1, offset+2
 					//         offset imi da pozitia in tabloul interData
 					//         offsetSource imi da pozitia in tabloul sourceData
 					//         offsetDest imi da pozitia in tabloul destData
-					
-					interData[offset] = sourceData[offset];
-					interData[offset + 1] = sourceData[offset + 1];
-					interData[offset + 2] = sourceData[offset + 2];
+
+					interData[offset] = sourceData[offsetSource] * (1-ti) + destData[offsetDest] * (ti);
+					interData[offset + 1] = sourceData[offsetSource + 1] * (1-ti) + destData[offsetDest + 1] * (ti);
+					interData[offset + 2] = sourceData[offsetSource + 2] * (1-ti) + destData[offsetDest + 2] * (ti);
 
 					break;
 				}
-				
+
 			}
 		}
 	}
@@ -272,9 +297,9 @@ void lab4::Update(float deltaTimeSeconds)
 	glDisable(GL_DEPTH_TEST);
 
 	auto resolution = window->GetResolution();
-	glViewport(0, 0, resolution.x/3, resolution.y);
+	glViewport(0, 0, resolution.x / 3, resolution.y);
 
-	
+
 	auto shader = shaders["MainShader"];
 	int locTexture = shader->GetUniformLocation("textura1");
 	int locImage = shader->GetUniformLocation("is_image");
@@ -286,7 +311,7 @@ void lab4::Update(float deltaTimeSeconds)
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glUniform1i(locImage, 1);
 	RenderMesh(meshes["quad"], shader, glm::scale(glm::mat4(1), glm::vec3(1, 1, 1)));
-		
+
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glUniform1i(locImage, 0);
 	RenderMesh(sourceNet, shader, glm::scale(glm::mat4(1), glm::vec3(1, 1, 1)));
@@ -306,7 +331,7 @@ void lab4::Update(float deltaTimeSeconds)
 	RenderMesh(interNet, shader, glm::scale(glm::mat4(1), glm::vec3(1, 1, 1)));
 
 	//desenare imaginea destinatie
-	glViewport(resolution.x * 2/3, 0, resolution.x / 3, resolution.y);
+	glViewport(resolution.x * 2 / 3, 0, resolution.x / 3, resolution.y);
 	glUniform1i(locTexture, 0);
 	destImage->BindToTextureUnit(GL_TEXTURE0);
 
@@ -324,7 +349,7 @@ void lab4::Update(float deltaTimeSeconds)
 
 void lab4::FrameEnd()
 {
-	
+
 }
 
 // Read the documentation of the following functions in: "Source/Core/Window/InputController.h" or
@@ -332,14 +357,14 @@ void lab4::FrameEnd()
 
 void lab4::OnInputUpdate(float deltaTime, int mods)
 {
-	
+
 };
 
 void lab4::OnKeyPress(int key, int mods)
 {
 	if (key == GLFW_KEY_A)
 	{
-		
+
 		if (counter < iterations)
 		{
 			counter++;
@@ -347,16 +372,16 @@ void lab4::OnKeyPress(int key, int mods)
 		}
 	}
 	else
-	if (key == GLFW_KEY_Z)
-	{
-		
-		if (counter > 0)
+		if (key == GLFW_KEY_Z)
 		{
-			counter--;
-			ModifyImage(counter, iterations);
+
+			if (counter > 0)
+			{
+				counter--;
+				ModifyImage(counter, iterations);
+			}
 		}
-	}
-	
+
 
 };
 
