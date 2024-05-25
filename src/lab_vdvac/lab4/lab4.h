@@ -34,6 +34,7 @@ namespace vdvac
 		Mesh* createQuad(const char* name);
 		void createNet(const string& path, const char* fileName);
 	
+		void ModifyImage2(int crt_iteration, int iterations);
 
 		Texture2D* sourceImage, * destImage, * interImage;
 		Mesh* sourceNet, * destNet, * interNet;

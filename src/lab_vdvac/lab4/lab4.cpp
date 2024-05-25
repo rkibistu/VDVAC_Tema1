@@ -163,7 +163,7 @@ void lab4::ModifyImage(int crt_iteration, int iterations)
 		//TODO2
 		// calculeaza varfurile retelei intermediare prin interpolare
 		//slide 12
-		vertices[i].position = sourceNet->vertices[i].position * (1-ti) + destNet->vertices[i].position * ti;
+		vertices[i].position = sourceNet->vertices[i].position * (1 - ti) + destNet->vertices[i].position * ti;
 	}
 
 	unsigned int channels = sourceImage->GetNrChannels();
@@ -269,9 +269,9 @@ void lab4::ModifyImage(int crt_iteration, int iterations)
 					//         offsetSource imi da pozitia in tabloul sourceData
 					//         offsetDest imi da pozitia in tabloul destData
 
-					interData[offset] = sourceData[offsetSource] * (1-ti) + destData[offsetDest] * (ti);
-					interData[offset + 1] = sourceData[offsetSource + 1] * (1-ti) + destData[offsetDest + 1] * (ti);
-					interData[offset + 2] = sourceData[offsetSource + 2] * (1-ti) + destData[offsetDest + 2] * (ti);
+					interData[offset] = sourceData[offsetSource] * (1 - ti) + destData[offsetDest] * (ti);
+					interData[offset + 1] = sourceData[offsetSource + 1] * (1 - ti) + destData[offsetDest + 1] * (ti);
+					interData[offset + 2] = sourceData[offsetSource + 2] * (1 - ti) + destData[offsetDest + 2] * (ti);
 
 					break;
 				}
@@ -283,6 +283,119 @@ void lab4::ModifyImage(int crt_iteration, int iterations)
 	interImage->UploadNewData(interData);
 	interNet->InitFromData(vertices, indices);
 }
+
+void lab4::ModifyImage2(int crt_iteration, int iterations)
+{
+	vector<VertexFormat> vertices = interNet->vertices;
+	vector<unsigned int> indices = interNet->indices;
+
+	float ti = (float)crt_iteration / iterations;
+	for (int i = 0; i < interNet->vertices.size(); i++)
+	{
+		//TODO2
+		// calculeaza varfurile retelei intermediare prin interpolare
+		//slide 12
+		vertices[i].position = sourceNet->vertices[i].position * (1 - ti) + destNet->vertices[i].position * ti;
+	}
+
+	unsigned int channels = sourceImage->GetNrChannels();
+	unsigned char* sourceData = sourceImage->GetImageData();
+	unsigned char* destData = destImage->GetImageData();
+	unsigned char* interData = interImage->GetImageData();
+
+
+	if (channels < 3)
+		return;
+
+	glm::ivec2 imageSize = glm::ivec2(sourceImage->GetWidth(), sourceImage->GetHeight());
+	int offset, offsetSource, offsetDest;
+	glm::vec2 v0, v1, v2, vsource0, vsource1, vsource2, vdest0, vdest1, vdest2;
+	glm::vec2 pos, posSource, posDest;
+	float u, v, w;
+	int isource, jsource;
+	int idest, jdest;
+
+	//patratul in care facem rasterizare
+	float yMin1 = 0, yMax1 = 0, xMin1 = 0, xMax1 = 0;
+	int yMin = 0, yMax = 0, xMin = 0, xMax = 0;
+
+	//rasterizam fiecare triunghiu
+	for (int k = 0; k < indices.size(); k += 3) {
+
+		//varfurile triungiului curent in reteaua intermediara
+		v0 = vertices[indices[k]].position;
+		v1 = vertices[indices[k + 1]].position;
+		v2 = vertices[indices[k + 2]].position;
+
+		//varfurile patratului in care cautam pixelilor triunghiului pt rasterizare
+		xMin1 = glm::min(v0.x, glm::min(v1.x, v2.x));
+		xMax1 = glm::max(v0.x, glm::max(v1.x, v2.x));
+		yMin1 = glm::min(v0.y, glm::min(v1.y, v2.y));
+		yMax1 = glm::max(v0.y, glm::max(v1.y, v2.y));
+
+		//la rezolutia imaginii
+		xMin = xMin1 * imageSize.x;
+		xMax = xMax1 * imageSize.x;
+		yMin = imageSize.y - (yMax1 * imageSize.y + 0.5);
+		yMax = imageSize.y - (yMin1 * imageSize.y + 0.5);
+
+		if (yMin < 0) yMin = 0;
+		if (yMax < 0) yMax = 0;
+		if (yMin > imageSize.y) yMin = imageSize.y - 1;
+		if (yMax > imageSize.y) yMax = imageSize.y - 1;
+
+
+		vsource0 = sourceNet->vertices[sourceNet->indices[k]].position;
+		vsource1 = sourceNet->vertices[sourceNet->indices[k + 1]].position;
+		vsource2 = sourceNet->vertices[sourceNet->indices[k + 2]].position;
+
+		vdest0 = destNet->vertices[destNet->indices[k]].position;
+		vdest1 = destNet->vertices[destNet->indices[k + 1]].position;
+		vdest2 = destNet->vertices[destNet->indices[k + 2]].position;
+
+		for (int j = yMin; j < yMax; j++) {
+			for (int i = xMin; i < xMax; i++) {
+
+				offset = channels * (j * imageSize.x + i);
+				pos.y = (float)(imageSize.y - j - 1) / imageSize.y;
+				pos.x = (float)i / imageSize.x;
+
+				if (Baricentric(pos, v0, v1, v2, u, v, w))
+				{
+					posSource = u * vsource0 + v * vsource1 + w * vsource2;
+					posDest = u * vdest0 + v * vdest1 + w * vdest2;
+
+					//se scaleaza la rezolutia imaginii
+					isource = posSource.x * imageSize.x + 0.5;
+					jsource = imageSize.y - (posSource.y * imageSize.y + 0.5) - 1;
+
+					idest = posDest.x * imageSize.x + 0.5;
+					jdest = imageSize.y - (posDest.y * imageSize.y + 0.5) - 1;
+
+					if (isource < 0) isource = 0;
+					if (jsource < 0) jsource = 0;
+					if (idest < 0) idest = 0;
+					if (jdest < 0) jdest = 0;
+					if (isource >= imageSize.x) isource = imageSize.x - 1;
+					if (jsource >= imageSize.y) jsource = imageSize.y - 1;
+					if (idest >= imageSize.x) idest = imageSize.x - 1;
+					if (jdest >= imageSize.y) jdest = imageSize.y - 1;
+
+					offsetSource = channels * (jsource * imageSize.x + isource);
+					offsetDest = channels * (jdest * imageSize.x + idest);
+
+					interData[offset] = sourceData[offsetSource] * (1 - ti) + destData[offsetDest] * (ti);
+					interData[offset + 1] = sourceData[offsetSource + 1] * (1 - ti) + destData[offsetDest + 1] * (ti);
+					interData[offset + 2] = sourceData[offsetSource + 2] * (1 - ti) + destData[offsetDest + 2] * (ti);
+				}
+			}
+		}
+	}
+
+	interImage->UploadNewData(interData);
+	interNet->InitFromData(vertices, indices);
+}
+
 
 void lab4::FrameStart()
 {
@@ -368,7 +481,7 @@ void lab4::OnKeyPress(int key, int mods)
 		if (counter < iterations)
 		{
 			counter++;
-			ModifyImage(counter, iterations);
+			ModifyImage2(counter, iterations);
 		}
 	}
 	else
@@ -378,7 +491,7 @@ void lab4::OnKeyPress(int key, int mods)
 			if (counter > 0)
 			{
 				counter--;
-				ModifyImage(counter, iterations);
+				ModifyImage2(counter, iterations);
 			}
 		}
 
