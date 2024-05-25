@@ -26,6 +26,11 @@ namespace vdvac {
 			float Qu;
 		} TableElementQ;
 
+		enum TrajMode {
+			Bezier = 0,
+			Circle
+		};
+
 		void FrameStart() override;
 		void Update(float deltaTimeSeconds) override;
 		void FrameEnd() override;
@@ -44,9 +49,9 @@ namespace vdvac {
 		
 		// used to feed geometry shader to create bezier curve for trajectory
 		void CreateLineMesh(std::string name);
+
 		// used to generate the speed curve that will we seen in 2D (Z values always 0)
-		// Only for curves that have the same value of S(u) for entire duration
-		void CreateSpeedCurveBezier(std::string name);
+		void CreateSpeedCurveLinear(std::string name);
 		// Particualr case of creatSpeedCurve for easein eastout (it need to change s(u) in the middle)
 		void CreateSpeedCurveEaseInEaseOut(std::string name);
 		
@@ -54,6 +59,7 @@ namespace vdvac {
 		void CreateCircleCurve(std::string name);
 		void CreateBezierCurve(std::string name);
 
+		//old implementation, used geometry shader. Don t used anymore
 		void RenderBezierCurve(Mesh* mesh, Shader* shader, const glm::mat4& modelMatrix, const glm::vec3& color);
 
 		//trajectory curve equation
@@ -72,6 +78,8 @@ namespace vdvac {
 		//table with Q(u) - specific to bezier curve
 		// you need to change the equation of calcualtion  for p1 and p2 for other curves
 		void GenerateTableBezierQ();
+		//Circle
+		void GenerateTableCircleQ();
 		// we need to normalize distance because Su is in interva; [0,1]
 		void NormalizeTableQ();
 
@@ -101,6 +109,7 @@ namespace vdvac {
 		void SetModeBezierEIEO();
 		void SetModeBezierLinear();
 		void SetModeCircleEIEO();
+		void SetModeCircleLinear();
 
 	private:
 		// trajectory data
@@ -124,5 +133,7 @@ namespace vdvac {
 		bool _play = false; // start animation
 		float _animationDuration = 5.0f; //seconds
 		float _animationTimer; // used to time the current animation
+		
+		TrajMode _trajMode = TrajMode::Bezier;
 	};
 }

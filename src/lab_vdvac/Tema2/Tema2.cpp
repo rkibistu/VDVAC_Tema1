@@ -9,12 +9,12 @@ using namespace vdvac;
 
 Tema2::Tema2()
 {
-	traj_no_of_generated_points = 200; // number of points on a Bezier curve (how smooth it is)
+	traj_no_of_generated_points = 20000; // number of points on a Bezier curve (how smooth it is)
 	// Define control points
 	traj_control_p0 = glm::vec3(-4.0, 0, 1.0);
 	traj_control_p1 = glm::vec3(0.5, 1.5, 1.0);
 	traj_control_p2 = glm::vec3(0.5, 3.0, 1.0);
-	traj_control_p3 = glm::vec3(-4.0, 6, 1.0);
+	traj_control_p3 = glm::vec3(-4.0, 10, 1.0);
 }
 
 Tema2::~Tema2()
@@ -59,7 +59,6 @@ void Tema2::Init()
 	// Sets trajectory curve and speed curve
 	// This can bee changed by pressing specific KEYs (see input methods)
 	SetModeBezierEIEO();
-
 }
 
 void Tema2::FrameStart()
@@ -93,7 +92,16 @@ void Tema2::Update(float deltaTimeSeconds)
 
 		float Su = CalculateSu(ti);
 		float u = CalculateFinalU(Su);
-		glm::vec3 Q = Q_Bezier(u);
+
+		glm::vec3 Q;
+		if(_trajMode == TrajMode::Bezier)
+			Q = Q_Bezier(u);
+		else if(_trajMode == TrajMode::Circle)
+			Q = Q_circle(u);
+		else {
+			std::cout << "[ERROR] WRONG TRAJ MODE! \n";
+			return;
+		}
 
 		model_matrix = glm::translate(model_matrix, Q);
 		model_matrix = glm::scale(model_matrix, glm::vec3(0.3, 0.3, 0.3));
@@ -138,6 +146,16 @@ void Tema2::OnKeyPress(int key, int mods)
 	if (key == GLFW_KEY_2) {
 		std::cout << "Bezier + EIEO mode\n";
 		SetModeBezierEIEO();
+		_animationTimer = 0;
+	}
+	if (key == GLFW_KEY_3) {
+		std::cout << "circle + EIEO mode\n";
+		SetModeCircleEIEO();
+		_animationTimer = 0;
+	}
+	if (key == GLFW_KEY_4) {
+		std::cout << "circle + linear mode\n";
+		SetModeCircleLinear();
 		_animationTimer = 0;
 	}
 };
@@ -205,7 +223,7 @@ void Tema2::CreateLineMesh(std::string name) {
 	meshes[name]->SetDrawMode(GL_LINES);
 }
 
-void Tema2::CreateSpeedCurveBezier(std::string name) {
+void Tema2::CreateSpeedCurveLinear(std::string name) {
 
 	vector<VertexFormat> vertices;
 	vector<unsigned int> indices;
@@ -251,7 +269,7 @@ void Tema2::CreateCircleCurve(std::string name) {
 	float pass = 2 * 3.14159265358979323846 / float(traj_no_of_generated_points);
 
 	vertices.push_back(VertexFormat(Q_circle(0), glm::vec3(1, 1, 1)));
-	for (int i = 1; i <= _speed_curve_no_generated_points; i++) {
+	for (int i = 1; i <= traj_no_of_generated_points; i++) {
 		vertices.push_back(VertexFormat(Q_circle(i * pass), glm::vec3(1, 1, 1)));
 		indices.push_back(i - 1);
 		indices.push_back(i);
@@ -408,6 +426,38 @@ void Tema2::GenerateTableBezierQ() {
 		distance = pow(dx * dx + dy * dy + dz * dz, 0.5);
 
 		el.u = u;
+		el.Qu = totalDistance + distance;
+		_tableQ.push_back(el);
+
+		u += pass;
+		totalDistance += distance;
+	}
+}
+void Tema2::GenerateTableCircleQ() {
+	// For u = [0,1], generate Q values
+	float pass = 2 * 3.14159265358979323846 / float(traj_no_of_generated_points);
+	float u = 0;
+	TableElementQ el;
+	glm::vec3 p1, p2;
+	float dx, dy, dz;
+	float distance, totalDistance = 0;
+
+	// write first eleement before while
+	el.u = 0;
+	el.Qu = 0;
+	_tableQ.push_back(el);
+	u += pass;
+	for(int i=0;i<traj_no_of_generated_points;i++) {
+
+		//calcualte distance between current point and last point
+		p1 = Q_circle(u);
+		p2 = Q_circle(u - pass);
+		dx = abs(p1.x - p2.x);
+		dy = abs(p1.y - p2.y);
+		dz = abs(p1.z - p2.z);
+		distance = pow(dx * dx + dy * dy + dz * dz, 0.5);
+
+		el.u = u / 2 * 3.14159265358979323846;
 		el.Qu = totalDistance + distance;
 		_tableQ.push_back(el);
 
@@ -612,18 +662,42 @@ void Tema2::SetModeBezierEIEO() {
 	GenerateTableV_EIEO();
 	GenerateTableBezierQ();
 	NormalizeTableQ();
+
+	_trajMode = TrajMode::Bezier;
 }
 void Tema2::SetModeBezierLinear() {
 	// Bezier trajectory with linear speed curve
 	ClearOldData();
 	SetSpeedCurveLinear();
 	CreateBezierCurve("trajCurve");
-	CreateSpeedCurveBezier("speedCurve");
+	CreateSpeedCurveLinear("speedCurve");
 	GenerateTableV();
 	GenerateTableBezierQ();
 	NormalizeTableQ();
+
+	_trajMode = TrajMode::Bezier;
 }
 void Tema2::SetModeCircleEIEO(){
 	
-	
+	ClearOldData();
+	SetSpeedCurveEaseIn();
+	CreateCircleCurve("trajCurve");
+	CreateSpeedCurveEaseInEaseOut("speedCurve");
+	GenerateTableV_EIEO();
+	GenerateTableCircleQ();
+	NormalizeTableQ();
+
+	_trajMode = TrajMode::Circle;
+}
+void Tema2::SetModeCircleLinear() {
+
+	ClearOldData();
+	SetSpeedCurveLinear();
+	CreateCircleCurve("trajCurve");
+	CreateSpeedCurveLinear("speedCurve");
+	GenerateTableV();
+	GenerateTableCircleQ();
+	NormalizeTableQ();
+
+	_trajMode = TrajMode::Circle;
 }
