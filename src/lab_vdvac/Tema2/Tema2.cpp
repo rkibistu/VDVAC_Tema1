@@ -47,11 +47,22 @@ void Tema2::Init()
 	CreateLineMesh("line");
 
 	//define coeffiecient values for speed curve and generate it
-	SetSpeedCurveLinear();
-	CreateSpeedCurve("speedCurve");
+	//SetSpeedCurveLinear();
+	//CreateSpeedCurve("speedCurve");
 
 	SetSpeedCurveEaseIn();
 	CreateSpeedCurveEaseInEaseOut("speedCurveEIEO");
+
+	// Call method to generate table
+	GenerateTableV();
+	GenerateTableBezierQ();
+	NormalizeTableQ();
+
+	float Su = CalculateSu(0.81);
+	float u = CalculateFinalU(Su);
+	glm::vec3 Q = Q_Bezier(u);
+	std::cout << "Su:" << Su << "  u:" << u << "  Q:"  << Q << std::endl;
+
 }
 
 void Tema2::FrameStart()
@@ -190,7 +201,6 @@ void Tema2::CreateSpeedCurveEaseInEaseOut(std::string name) {
 
 		//Change to EaseOut
 		if (i == int(_speed_curve_no_generated_points / 2)) {
-			std::cout << "DAAAAAAAA";
 			SetSpeedCurveEaseOut();
 		}
 	}
@@ -250,7 +260,117 @@ float Tema2::T(float u) {
 	return _at3 * pow(u, 3) + _at2 * pow(u, 2) + _at1 * u + _at0;
 }
 
-void vdvac::Tema2::SetSpeedCurveLinear() {
+void Tema2::GenerateTableV() {
+	// For u = [0,1], generate T and S values
+	float pass = 0.01;
+	float u = 0;
+	TableElementV el;
+	while (u <= 1) {
+
+		el.u = u;
+		el.Tu = T(u);
+		el.Su = S(u);
+		_tableV.push_back(el);
+
+		u += pass;
+	}
+}
+void Tema2::GenerateTableBezierQ() {
+	// For u = [0,1], generate Q values
+	float pass = 0.01;
+	float u = 0;
+	TableElementQ el;
+	glm::vec3 p1, p2;
+	float dx, dy, dz;
+	float distance, totalDistance = 0;
+
+	// write first eleement before while
+	el.u = 0;
+	el.Qu = 0;
+	_tableQ.push_back(el);
+	u += pass;
+	while (u <= 1) {
+
+		//calcualte distance between current point and last point
+		p1 = Q_Bezier(u);
+		p2 = Q_Bezier(u - pass);
+		dx = abs(p1.x - p2.x);
+		dy = abs(p1.y - p2.y);
+		dz = abs(p1.z - p2.z);
+		distance = pow(dx * dx + dy * dy + dz * dz, 0.5);
+
+		el.u = u;
+		el.Qu = totalDistance + distance;
+		_tableQ.push_back(el);
+
+		u += pass;
+		totalDistance += distance;
+	}
+}
+void Tema2::NormalizeTableQ() {
+	// Find the minimum and maximum values in the array
+	double min_val = _tableQ[0].Qu;
+	double max_val = _tableQ[_tableQ.size() - 1].Qu;
+
+	// Normalize each element in the array
+	
+	TableElementQ el;
+	for (int i = 0; i < _tableQ.size();i ++) {
+		el.u = _tableQ[i].u;
+		el.Qu = (_tableQ[i].Qu - min_val) / (max_val - min_val);
+		_normalizedTableQ.push_back(el);
+	}
+}
+float Tema2::CalculateSu(float ti) {
+
+	int high, low;
+	// Find closest value
+	int index = BinarySearch(_tableV, 0, _tableV.size() - 1, ti);
+
+	// Choose interval where Ti is found
+	if (ti >= _tableV[index - 1].Tu && ti <= _tableV[index].Tu) {
+		low = index - 1;
+		high = index;
+	}
+	else if (ti >= _tableV[index].Tu && ti <= _tableV[index + 1].Tu) {
+		low = index;
+		high = index + 1;
+	}
+	else {
+		std::cout << "[ERROR] SOEMTHIGN WRONG HERE! SHouldn happend this!\n\n";
+	}
+
+	// Calculate Su
+	float Su = interpolate(ti, _tableV[low].Tu, _tableV[high].Tu, _tableV[low].Su, _tableV[high].Su);
+
+	return Su;
+}
+float Tema2::CalculateFinalU(float Su) {
+
+	int high, low;
+	// Find closest value
+	int index = BinarySearchQ(_normalizedTableQ, 0, _normalizedTableQ.size() - 1, Su);
+
+	// Choose interval where Ti is found
+	if (Su >= _normalizedTableQ[index - 1].Qu && Su <= _normalizedTableQ[index].Qu) {
+		low = index - 1;
+		high = index;
+	}
+	else if (Su >= _normalizedTableQ[index].Qu && Su <= _normalizedTableQ[index + 1].Qu) {
+		low = index;
+		high = index + 1;
+	}
+	else {
+		std::cout << "[ERROR] SOEMTHIGN WRONG HERE! SHouldn happend this!\n\n";
+	}
+
+	// Calculate Su
+	float u = interpolate(Su, _normalizedTableQ[low].Qu, _normalizedTableQ[high].Qu, _normalizedTableQ[low].u, _normalizedTableQ[high].u);
+
+	return u;
+}
+
+void Tema2::SetSpeedCurveLinear() {
 
 	_as3 = 0;
 	_as2 = 0;
@@ -263,7 +383,7 @@ void vdvac::Tema2::SetSpeedCurveLinear() {
 	_at0 = 0;
 }
 
-void vdvac::Tema2::SetSpeedCurveEaseIn() {
+void Tema2::SetSpeedCurveEaseIn() {
 
 	_as3 = 0;
 	_as2 = 2;
@@ -276,7 +396,7 @@ void vdvac::Tema2::SetSpeedCurveEaseIn() {
 	_at0 = 0;
 }
 
-void vdvac::Tema2::SetSpeedCurveEaseOut() {
+void Tema2::SetSpeedCurveEaseOut() {
 
 	_as3 = 0;
 	_as2 = -2;
@@ -289,4 +409,59 @@ void vdvac::Tema2::SetSpeedCurveEaseOut() {
 	_at0 = 0;
 }
 
+int Tema2::BinarySearch(std::vector<TableElementV> arr, int low, int high, float x){
 
+	// Base case: If the search space becomes empty, the 
+	// element is not present in the array 
+	if (high >= low) {
+		// Calculate the middle index to divide the search 
+		// space in half 
+		int mid = low + (high - low) / 2;
+
+		// If the middle element is equal to 'x', we have 
+		// found the element, return its index 
+		if (arr[mid].Tu == x)
+			return mid;
+
+		// If the middle element is greater than 'x', search 
+		// in the left half of the array 
+		if (arr[mid].Tu > x)
+			return BinarySearch(arr, low, mid - 1, x);
+
+		// If the middle element is less than 'x', search in 
+		// the right half of the array 
+		return BinarySearch(arr, mid + 1, high, x);
+	}
+
+	return high;
+}
+int Tema2::BinarySearchQ(std::vector<TableElementQ> arr, int low, int high, float x) {
+
+	// Base case: If the search space becomes empty, the 
+	// element is not present in the array 
+	if (high >= low) {
+		// Calculate the middle index to divide the search 
+		// space in half 
+		int mid = low + (high - low) / 2;
+
+		// If the middle element is equal to 'x', we have 
+		// found the element, return its index 
+		if (arr[mid].Qu == x)
+			return mid;
+
+		// If the middle element is greater than 'x', search 
+		// in the left half of the array 
+		if (arr[mid].Qu > x)
+			return BinarySearchQ(arr, low, mid - 1, x);
+
+		// If the middle element is less than 'x', search in 
+		// the right half of the array 
+		return BinarySearchQ(arr, mid + 1, high, x);
+	}
+
+	return high;
+}
+
+float Tema2::interpolate(float x, float t1, float t2, float s1, float s2) {
+	return s1 + (x - t1) * (s2 - s1) / (t2 - t1);
+}

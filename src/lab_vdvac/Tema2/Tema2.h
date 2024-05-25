@@ -8,16 +8,23 @@ namespace vdvac {
 
 	class Tema2 : public gfxc::SimpleScene
 	{
-
-
 	public:
 		Tema2();
 		~Tema2();
 
 		void Init() override;
 
-
 	private:
+
+		typedef struct TableElementV{
+			float u;
+			float Tu;
+			float Su;
+		} TableElementV;
+		typedef struct TableElementQ {
+			float u;
+			float Qu;
+		} TableElementQ;
 
 		void FrameStart() override;
 		void Update(float deltaTimeSeconds) override;
@@ -50,10 +57,34 @@ namespace vdvac {
 		float S(float u);
 		float T(float u);
 
+		//table with T(u) and S(u)
+		void GenerateTableV();
+		//table with Q(u) - specific to bezier curve
+		// you need to change the equation of calcualtion  for p1 and p2 for other curves
+		void GenerateTableBezierQ();
+		// we need to normalize distance because Su is in interva; [0,1]
+		void NormalizeTableQ();
+
+		// Gets ti (animation time [0,1]) and calculates the Su value (tableV)
+		float CalculateSu(float ti);
+		// Gets Su calcualted with CalculateSu method and calculates the final U (tableQ)
+		// This u values will be sued to calculate the current position of the object
+		float CalculateFinalU(float su);
+
 		// Set the coeffiecient for predefined speed curves
 		void SetSpeedCurveLinear();
 		void SetSpeedCurveEaseIn();
 		void SetSpeedCurveEaseOut();
+
+		//utils
+		// Returns the index of a number very close to x
+		// You have to check if x is in the interval below or above this value.
+		int BinarySearch(std::vector<TableElementV> arr, int low, int high, float x);
+		int BinarySearchQ(std::vector<TableElementQ> arr, int low, int high, float x);
+
+		// Interpolate
+		// x is a value in interval [t1,t2]. Find the coresponding value in intravel [s1,s2]
+		float interpolate(float x, float t1, float t2, float s1, float s2);
 
 	private:
 		// trajectory data
@@ -66,5 +97,10 @@ namespace vdvac {
 		float _at3, _at2, _at1, _at0;
 		// speed curve smoothness
 		int _speed_curve_no_generated_points = 50;
+
+		// table with valuews from speed curve
+		std::vector<TableElementV> _tableV;
+		std::vector<TableElementQ> _tableQ;
+		std::vector<TableElementQ> _normalizedTableQ;
 	};
 }
