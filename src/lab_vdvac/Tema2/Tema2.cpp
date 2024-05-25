@@ -56,20 +56,9 @@ void Tema2::Init()
 		meshes[mesh->GetMeshID()] = mesh;
 	}
 
-	//define coeffiecient values for speed curve and generate it
-	//SetSpeedCurveLinear();
-	//CreateSpeedCurve("speedCurve");
-
-	SetSpeedCurveEaseIn();
-	CreateSpeedCurveEaseInEaseOut("speedCurveEIEO");
-
-	// Call method to generate table
-	GenerateTableV();
-	GenerateTableBezierQ();
-	NormalizeTableQ();
-
-	
-
+	// Sets trajectory curve and speed curve
+	// This can bee changed by pressing specific KEYs (see input methods)
+	SetModeBezierEIEO();
 }
 
 void Tema2::FrameStart()
@@ -92,10 +81,8 @@ void Tema2::Update(float deltaTimeSeconds)
 	//GetSceneCamera()->SetOrthographic(1, 1, 0.0001, 200);
 	RenderBezierCurve(meshes["line"], shaders["BezierShader"], model_matrix, glm::vec3(0, 1, 1));
 	//RenderMesh(meshes["speedCurve"], shaders["MainShader"], model_matrix);
-	RenderMesh(meshes["speedCurveEIEO"], shaders["MainShader"], model_matrix);
+	RenderMesh(meshes["speedCurve"], shaders["MainShader"], model_matrix);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-
 
 	// Draw aniamted object
 	if (_play) {
@@ -138,8 +125,17 @@ void Tema2::OnKeyPress(int key, int mods)
 {
 	if (key == GLFW_KEY_SPACE) {
 		_play = true;
+		_animationTimer = 0;
+	}
 
-		_animationStart = Engine::GetElapsedTime();
+	if (key == GLFW_KEY_1) {
+		std::cout << "Bezier + linear mode\n";
+		SetModeBezierLinear();
+		_animationTimer = 0;
+	}
+	if (key == GLFW_KEY_2) {
+		std::cout << "Bezier + EIEO mode\n";
+		SetModeBezierEIEO();
 		_animationTimer = 0;
 	}
 };
@@ -301,7 +297,28 @@ void Tema2::GenerateTableV() {
 	float pass = 0.01;
 	float u = 0;
 	TableElementV el;
+	bool changed = false;
+	while (u <= 1) {
+
+		if (!changed && u >= 0.5) {
+			changed = true;
+		}
+
+		el.u = u;
+		el.Tu = T(u);
+		el.Su = S(u);
+		_tableV.push_back(el);
+
+		u += pass;
+	}
+}
+void Tema2::GenerateTableV_EIEO() {
+	// For u = [0,1], generate T and S values
 	SetSpeedCurveEaseIn();
+
+	float pass = 0.01;
+	float u = 0;
+	TableElementV el;
 	bool changed = false;
 	while (u <= 1) {
 
@@ -356,9 +373,9 @@ void Tema2::NormalizeTableQ() {
 	double max_val = _tableQ[_tableQ.size() - 1].Qu;
 
 	// Normalize each element in the array
-	
+
 	TableElementQ el;
-	for (int i = 0; i < _tableQ.size();i ++) {
+	for (int i = 0; i < _tableQ.size(); i++) {
 		el.u = _tableQ[i].u;
 		el.Qu = (_tableQ[i].Qu - min_val) / (max_val - min_val);
 		_normalizedTableQ.push_back(el);
@@ -468,7 +485,7 @@ void Tema2::SetSpeedCurveEaseOut() {
 	_at0 = 0;
 }
 
-int Tema2::BinarySearch(std::vector<TableElementV> arr, int low, int high, float x){
+int Tema2::BinarySearch(std::vector<TableElementV> arr, int low, int high, float x) {
 
 	// Base case: If the search space becomes empty, the 
 	// element is not present in the array 
@@ -523,4 +540,36 @@ int Tema2::BinarySearchQ(std::vector<TableElementQ> arr, int low, int high, floa
 
 float Tema2::interpolate(float x, float t1, float t2, float s1, float s2) {
 	return s1 + (x - t1) * (s2 - s1) / (t2 - t1);
+}
+
+void Tema2::ClearOldData() {
+	_tableV.clear();
+	_tableQ.clear();
+	_normalizedTableQ.clear();
+
+	//TODO
+	// I should free the memory of old mesh of speedcurve 
+	// because CreateSpeedCurve will overwrite the poitner
+	// and we will have memory leaks...
+	// But there is an error from the framework
+	/*if (meshes["speedCurve"])
+		delete(meshes["speedCurve"]);*/
+}
+void Tema2::SetModeBezierEIEO() {
+	// Bezier trajectory with EIEO speed curve
+	ClearOldData();
+	SetSpeedCurveEaseIn();
+	CreateSpeedCurveEaseInEaseOut("speedCurve");
+	GenerateTableV_EIEO();
+	GenerateTableBezierQ();
+	NormalizeTableQ();
+}
+void Tema2::SetModeBezierLinear() {
+	// Bezier trajectory with linear speed curve
+	ClearOldData();
+	SetSpeedCurveLinear();
+	CreateSpeedCurve("speedCurve");
+	GenerateTableV();
+	GenerateTableBezierQ();
+	NormalizeTableQ();
 }

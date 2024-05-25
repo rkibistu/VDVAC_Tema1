@@ -58,8 +58,12 @@ namespace vdvac {
 		float S(float u);
 		float T(float u);
 
-		//table with T(u) and S(u)
+		//table with T(u) and S(u) - works only for cases when S(u) 
+		// doesn t change it equation 
 		void GenerateTableV();
+		//generate table with T9(u) and S(u) - workd for ease in ease out case
+		// It changes the S equation at the middle
+		void GenerateTableV_EIEO();
 		//table with Q(u) - specific to bezier curve
 		// you need to change the equation of calcualtion  for p1 and p2 for other curves
 		void GenerateTableBezierQ();
@@ -87,6 +91,11 @@ namespace vdvac {
 		// x is a value in interval [t1,t2]. Find the coresponding value in intravel [s1,s2]
 		float interpolate(float x, float t1, float t2, float s1, float s2);
 
+		// DIFFRENT CURVES
+		void ClearOldData();
+		void SetModeBezierEIEO();
+		void SetModeBezierLinear();
+
 	private:
 		// trajectory data
 		glm::vec3 traj_control_p0, traj_control_p1, traj_control_p2, traj_control_p3;
@@ -107,7 +116,6 @@ namespace vdvac {
 		//animation
 		bool _play = false; // start animation
 		float _animationDuration = 5.0f; //seconds
-		float _animationStart; // set to current elapsed time when aniamtion starts
 		float _animationTimer; // used to time the current animation
 	};
 }
