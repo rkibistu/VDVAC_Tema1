@@ -29,6 +29,7 @@ void Tema2::Init()
 	//camera->SetPositionAndRotation(glm::vec3(2, 2, 2), glm::quat(glm::vec3(-45 * TO_RADIANS, 45 * TO_RADIANS, 0)));
 	camera->Update();
 
+	//shaders
 	std::string shaderPath = PATH_JOIN(window->props.selfDir, SOURCE_PATH::VDVAC, "Tema2", "shaders");
 	{
 		Shader* shader = new Shader("MainShader");
@@ -44,7 +45,16 @@ void Tema2::Init()
 		shader->CreateAndLink();
 		shaders[shader->GetName()] = shader;
 	}
-	CreateLineMesh("line");
+
+	// general meshes
+	{
+
+		CreateLineMesh("line");
+
+		Mesh* mesh = new Mesh("sphere");
+		mesh->LoadMesh(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::MODELS, "primitives"), "sphere.obj");
+		meshes[mesh->GetMeshID()] = mesh;
+	}
 
 	//define coeffiecient values for speed curve and generate it
 	//SetSpeedCurveLinear();
@@ -58,10 +68,7 @@ void Tema2::Init()
 	GenerateTableBezierQ();
 	NormalizeTableQ();
 
-	float Su = CalculateSu(0.81);
-	float u = CalculateFinalU(Su);
-	glm::vec3 Q = Q_Bezier(u);
-	std::cout << "Su:" << Su << "  u:" << u << "  Q:"  << Q << std::endl;
+	
 
 }
 
@@ -79,6 +86,8 @@ void Tema2::Update(float deltaTimeSeconds)
 	//shader->Use();
 
 	glm::mat4 model_matrix = glm::mat4(1);
+
+	//Draw curves
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	//GetSceneCamera()->SetOrthographic(1, 1, 0.0001, 200);
 	RenderBezierCurve(meshes["line"], shaders["BezierShader"], model_matrix, glm::vec3(0, 1, 1));
@@ -88,6 +97,28 @@ void Tema2::Update(float deltaTimeSeconds)
 
 
 
+	// Draw aniamted object
+	if (_play) {
+		//normalize animation timer (because speed curve has valuew in itnevral [0,1])
+		float ti = _animationTimer / _animationDuration;
+
+		float Su = CalculateSu(ti);
+		float u = CalculateFinalU(Su);
+		glm::vec3 Q = Q_Bezier(u);
+
+		model_matrix = glm::translate(model_matrix, Q);
+		model_matrix = glm::scale(model_matrix, glm::vec3(0.3, 0.3, 0.3));
+		RenderMesh(meshes["sphere"], shaders["MainShader"], model_matrix);
+
+		_animationTimer += deltaTimeSeconds;
+		if (_animationTimer >= _animationDuration)
+			_play = false;
+	}
+	else {
+		model_matrix = glm::translate(model_matrix, traj_control_p0);
+		model_matrix = glm::scale(model_matrix, glm::vec3(0.3, 0.3, 0.3));
+		RenderMesh(meshes["sphere"], shaders["MainShader"], model_matrix);
+	}
 }
 
 void Tema2::FrameEnd()
@@ -105,7 +136,12 @@ void Tema2::OnInputUpdate(float deltaTime, int mods)
 
 void Tema2::OnKeyPress(int key, int mods)
 {
+	if (key == GLFW_KEY_SPACE) {
+		_play = true;
 
+		_animationStart = Engine::GetElapsedTime();
+		_animationTimer = 0;
+	}
 };
 
 void Tema2::OnKeyRelease(int key, int mods)
@@ -265,7 +301,14 @@ void Tema2::GenerateTableV() {
 	float pass = 0.01;
 	float u = 0;
 	TableElementV el;
+	SetSpeedCurveEaseIn();
+	bool changed = false;
 	while (u <= 1) {
+
+		if (!changed && u >= 0.5) {
+			changed = true;
+			SetSpeedCurveEaseOut();
+		}
 
 		el.u = u;
 		el.Tu = T(u);
@@ -328,7 +371,15 @@ float Tema2::CalculateSu(float ti) {
 	int index = BinarySearch(_tableV, 0, _tableV.size() - 1, ti);
 
 	// Choose interval where Ti is found
-	if (ti >= _tableV[index - 1].Tu && ti <= _tableV[index].Tu) {
+	if (index == 0) {
+		low = 0;
+		high = low + 1;
+	}
+	else if (index == _tableV.size() - 1) {
+		high = _tableV.size() - 1;
+		low = high - 1;
+	}
+	else if (ti >= _tableV[index - 1].Tu && ti <= _tableV[index].Tu) {
 		low = index - 1;
 		high = index;
 	}
@@ -351,8 +402,16 @@ float Tema2::CalculateFinalU(float Su) {
 	// Find closest value
 	int index = BinarySearchQ(_normalizedTableQ, 0, _normalizedTableQ.size() - 1, Su);
 
-	// Choose interval where Ti is found
-	if (Su >= _normalizedTableQ[index - 1].Qu && Su <= _normalizedTableQ[index].Qu) {
+	// Choose interval where u is found
+	if (index == 0) {
+		low = 0;
+		high = low + 1;
+	}
+	else if (index == _normalizedTableQ.size() - 1) {
+		high = _normalizedTableQ.size() - 1;
+		low = high - 1;
+	}
+	else if (Su >= _normalizedTableQ[index - 1].Qu && Su <= _normalizedTableQ[index].Qu) {
 		low = index - 1;
 		high = index;
 	}

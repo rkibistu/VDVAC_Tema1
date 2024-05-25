@@ -41,6 +41,7 @@ namespace vdvac {
 
 		void ClearScreen(const glm::vec3& color = glm::vec3(0,0,0)) override;
 
+		
 		// used to feed geometry shader to create bezier curve for trajectory
 		void CreateLineMesh(std::string name);
 		// used to generate the speed curve that will we seen in 2D (Z values always 0)
@@ -102,5 +103,11 @@ namespace vdvac {
 		std::vector<TableElementV> _tableV;
 		std::vector<TableElementQ> _tableQ;
 		std::vector<TableElementQ> _normalizedTableQ;
+
+		//animation
+		bool _play = false; // start animation
+		float _animationDuration = 5.0f; //seconds
+		float _animationStart; // set to current elapsed time when aniamtion starts
+		float _animationTimer; // used to time the current animation
 	};
 }
