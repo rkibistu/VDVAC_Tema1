@@ -48,7 +48,7 @@ void Tema2::FrameStart()
 
 void Tema2::Update(float deltaTimeSeconds)
 {
-	ClearScreen();
+	ClearScreen(glm::vec3(0.121, 0.168, 0.372));
 
 	//Draw bezier curve
 	auto shader = shaders["MainShader"];
@@ -111,6 +111,20 @@ void Tema2::OnWindowResize(int width, int height)
 	// treat window resize event
 }
 
+void Tema2::ClearScreen(const glm::vec3& color)
+{
+	glm::ivec2 resolution = window->props.resolution;
+
+	// Sets the clear color for the color buffer
+	glClearColor(color.x, color.y, color.z, 1);
+
+	// Clears the color buffer (using the previously set color) and depth buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Sets the screen area where to draw
+	glViewport(0, 0, resolution.x, resolution.y);
+}
+
 // for hw
 void Tema2::CreateLineMesh(std::string name) {
 
@@ -165,3 +179,5 @@ void Tema2::RenderBezierCurve(Mesh* mesh, Shader* shader, const glm::mat4& model
 	glDrawElementsInstanced(mesh->GetDrawMode(), static_cast<int>(mesh->indices.size()), GL_UNSIGNED_INT, (void*)0, 1);
 
 }
+
+

@@ -32,6 +32,9 @@ namespace vdvac {
 		void OnMouseScroll(int mouseX, int mouseY, int offsetX, int offsetY) override;
 		void OnWindowResize(int width, int height) override;
 
+		void ClearScreen(const glm::vec3& color = glm::vec3(0,0,0)) override;
+
+
 		void CreateLineMesh(std::string name);
 		void RenderBezierCurve(Mesh* mesh, Shader* shader, const glm::mat4& modelMatrix, const glm::vec3& color);
 

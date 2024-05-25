@@ -48,7 +48,7 @@ namespace gfxc
         Camera *GetSceneCamera() const;
         InputController *GetCameraInput() const;
 
-        void ClearScreen(const glm::vec3 &color = glm::vec3(0, 0, 0));
+        virtual void ClearScreen(const glm::vec3 &color = glm::vec3(0, 0, 0));
 
      private:
         void InitResources();
