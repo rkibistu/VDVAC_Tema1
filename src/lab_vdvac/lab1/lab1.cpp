@@ -220,7 +220,7 @@ void lab1::reconstructSurface(Mesh* mesh)
 				for (int i = 0; i < 8; i++) {
 					grid.p[i] = glm::vec3(x + offsets[i][0], y + offsets[i][1], z + offsets[i][2]);
 					grid.val[i] = volumeData[(z + offsets[i][2]) * xsize * ysize + (y + offsets[i][1]) * xsize + (x + offsets[i][0])];
-				}
+					}
 				//TODO3
 				//completeaza grid.n[] pentru toate varfurile voxelului
 				//normalele se calculeaza prin diferente finite si apoi se normalizeaza

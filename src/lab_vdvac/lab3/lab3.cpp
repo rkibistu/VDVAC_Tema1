@@ -291,6 +291,8 @@ void lab3::Init()
 
 	loadRAWFile(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::VOLUMES, "engine.raw"), 256, 256, 256);
 
+	
+
 	textures_idZ = new unsigned int[zsize];
 	textures_idX = new unsigned int[xsize];
 	textures_idY = new unsigned int[ysize];

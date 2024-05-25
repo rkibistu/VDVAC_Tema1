@@ -241,7 +241,8 @@ void main() {
 	createEdges();
 
 	vec3 n = normalize(proxyPointPos - cameraPos);
-	vec3 p0 = (Model * vec4(proxyPointPos, 1)).xyz;
+	//vec3 p0 = (Model * vec4(proxyPointPos, 1)).xyz;
+	vec3 p0 = proxyPointPos;
 
 	calculateIntersectionPoints(n,p0);
 

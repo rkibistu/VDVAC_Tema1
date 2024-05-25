@@ -109,13 +109,13 @@ void lab4::Init()
 		mesh->UseMaterials(false);
 	}
 
-	sourceImage = TextureManager::LoadTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex2/img1.png"), nullptr, "sourceImage", true, true);
-	interImage = TextureManager::LoadTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex2/img1.png"), nullptr, "interImage", true, true);
-	destImage = TextureManager::LoadTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex2/img2.png"), nullptr, "destImage", true, true);
+	sourceImage = TextureManager::LoadTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex1/img1.png"), nullptr, "sourceImage", true, true);
+	interImage = TextureManager::LoadTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex1/img1.png"), nullptr, "interImage", true, true);
+	destImage = TextureManager::LoadTexture(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex1/img2.png"), nullptr, "destImage", true, true);
 
 	sourceNet = new Mesh("sourceNet");
 	destNet = new Mesh("destNet");
-	createNet(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex2/net.txt"), nullptr);
+	createNet(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::TEXTURES, "ImageAnimation/ex1/net.txt"), nullptr);
 
 	interNet = new Mesh("interNet");
 	interNet->InitFromData(sourceNet->vertices, sourceNet->indices);
