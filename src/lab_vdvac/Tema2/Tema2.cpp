@@ -9,7 +9,7 @@ using namespace vdvac;
 
 Tema2::Tema2()
 {
-	traj_no_of_generated_points = 10; // number of points on a Bezier curve (how smooth it is)
+	traj_no_of_generated_points = 200; // number of points on a Bezier curve (how smooth it is)
 	// Define control points
 	traj_control_p0 = glm::vec3(-4.0, 0, 1.0);
 	traj_control_p1 = glm::vec3(0.5, 1.5, 1.0);
@@ -59,6 +59,7 @@ void Tema2::Init()
 	// Sets trajectory curve and speed curve
 	// This can bee changed by pressing specific KEYs (see input methods)
 	SetModeBezierEIEO();
+
 }
 
 void Tema2::FrameStart()
@@ -78,10 +79,11 @@ void Tema2::Update(float deltaTimeSeconds)
 
 	//Draw curves
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//RenderBezierCurve(meshes["line"], shaders["BezierShader"], model_matrix, glm::vec3(0, 1, 1));
+	RenderMesh(meshes["trajCurve"], shaders["MainShader"], model_matrix);
 	//GetSceneCamera()->SetOrthographic(1, 1, 0.0001, 200);
-	RenderBezierCurve(meshes["line"], shaders["BezierShader"], model_matrix, glm::vec3(0, 1, 1));
-	//RenderMesh(meshes["speedCurve"], shaders["MainShader"], model_matrix);
 	RenderMesh(meshes["speedCurve"], shaders["MainShader"], model_matrix);
+
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	// Draw aniamted object
@@ -203,7 +205,7 @@ void Tema2::CreateLineMesh(std::string name) {
 	meshes[name]->SetDrawMode(GL_LINES);
 }
 
-void Tema2::CreateSpeedCurve(std::string name) {
+void Tema2::CreateSpeedCurveBezier(std::string name) {
 
 	vector<VertexFormat> vertices;
 	vector<unsigned int> indices;
@@ -238,6 +240,42 @@ void Tema2::CreateSpeedCurveEaseInEaseOut(std::string name) {
 	}
 
 	meshes[name] = new Mesh("speedCurveEaseInEaseOut");
+	meshes[name]->InitFromData(vertices, indices);
+	meshes[name]->SetDrawMode(GL_LINES);
+}
+
+void Tema2::CreateCircleCurve(std::string name) {
+
+	vector<VertexFormat> vertices;
+	vector<unsigned int> indices;
+	float pass = 2 * 3.14159265358979323846 / float(traj_no_of_generated_points);
+
+	vertices.push_back(VertexFormat(Q_circle(0), glm::vec3(1, 1, 1)));
+	for (int i = 1; i <= _speed_curve_no_generated_points; i++) {
+		vertices.push_back(VertexFormat(Q_circle(i * pass), glm::vec3(1, 1, 1)));
+		indices.push_back(i - 1);
+		indices.push_back(i);
+	}
+
+	meshes[name] = new Mesh("circle");
+	meshes[name]->InitFromData(vertices, indices);
+	meshes[name]->SetDrawMode(GL_LINES);
+}
+void Tema2::CreateBezierCurve(std::string name) {
+
+	vector<VertexFormat> vertices;
+	vector<unsigned int> indices;
+	float pass = 0.01;
+	int index = 1;
+	vertices.push_back(VertexFormat(Q_Bezier(0), glm::vec3(1, 1, 1)));
+	while (index * pass <= 1.0) {
+		vertices.push_back(VertexFormat(Q_Bezier(index * pass), glm::vec3(1, 1, 1)));
+		indices.push_back(index - 1);
+		indices.push_back(index);
+		index++;
+	}
+
+	meshes[name] = new Mesh("bezier");
 	meshes[name]->InitFromData(vertices, indices);
 	meshes[name]->SetDrawMode(GL_LINES);
 }
@@ -283,6 +321,16 @@ glm::vec3 Tema2::Q_Bezier(float u) {
 		traj_control_p1 * 3.0f * u * float(pow(1 - u, 2)) +
 		traj_control_p2 * 3.0f * float(pow(u, 2)) * (1 - u) +
 		traj_control_p3 * float(pow(u, 3));
+}
+glm::vec3 Tema2::Q_circle(float u) {
+
+	glm::vec3 offset = glm::vec3(-5, 0, 0);
+	glm::vec3 pos = glm::vec3(
+		_circleRadius * cos(u),
+		_circleRadius * sin(u),
+		0.0f);
+
+	return pos + offset;
 }
 
 float Tema2::S(float u) {
@@ -559,6 +607,7 @@ void Tema2::SetModeBezierEIEO() {
 	// Bezier trajectory with EIEO speed curve
 	ClearOldData();
 	SetSpeedCurveEaseIn();
+	CreateBezierCurve("trajCurve");
 	CreateSpeedCurveEaseInEaseOut("speedCurve");
 	GenerateTableV_EIEO();
 	GenerateTableBezierQ();
@@ -568,8 +617,13 @@ void Tema2::SetModeBezierLinear() {
 	// Bezier trajectory with linear speed curve
 	ClearOldData();
 	SetSpeedCurveLinear();
-	CreateSpeedCurve("speedCurve");
+	CreateBezierCurve("trajCurve");
+	CreateSpeedCurveBezier("speedCurve");
 	GenerateTableV();
 	GenerateTableBezierQ();
 	NormalizeTableQ();
+}
+void Tema2::SetModeCircleEIEO(){
+	
+	
 }

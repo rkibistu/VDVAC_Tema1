@@ -46,14 +46,19 @@ namespace vdvac {
 		void CreateLineMesh(std::string name);
 		// used to generate the speed curve that will we seen in 2D (Z values always 0)
 		// Only for curves that have the same value of S(u) for entire duration
-		void CreateSpeedCurve(std::string name);
+		void CreateSpeedCurveBezier(std::string name);
 		// Particualr case of creatSpeedCurve for easein eastout (it need to change s(u) in the middle)
 		void CreateSpeedCurveEaseInEaseOut(std::string name);
 		
+		//trajectory curves
+		void CreateCircleCurve(std::string name);
+		void CreateBezierCurve(std::string name);
+
 		void RenderBezierCurve(Mesh* mesh, Shader* shader, const glm::mat4& modelMatrix, const glm::vec3& color);
 
 		//trajectory curve equation
 		glm::vec3 Q_Bezier(float u);
+		glm::vec3 Q_circle(float u);
 		// speed curve equations
 		float S(float u);
 		float T(float u);
@@ -95,10 +100,12 @@ namespace vdvac {
 		void ClearOldData();
 		void SetModeBezierEIEO();
 		void SetModeBezierLinear();
+		void SetModeCircleEIEO();
 
 	private:
 		// trajectory data
 		glm::vec3 traj_control_p0, traj_control_p1, traj_control_p2, traj_control_p3;
+		float _circleRadius = 1.0;
 		unsigned int traj_no_of_generated_points;
 
 		// S(u) coeffiecients
