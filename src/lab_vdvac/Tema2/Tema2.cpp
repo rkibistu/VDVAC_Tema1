@@ -9,12 +9,11 @@ using namespace vdvac;
 
 Tema2::Tema2()
 {
-	traj_no_of_generated_points = 10; // number of points on a Bezier curve (how smooth it is)
 	// Define control points
-	traj_control_p0 = glm::vec3(-4.0, 0, 1.0);
+	traj_control_p0 = glm::vec3(-10.0, 0, 1.0);
 	traj_control_p1 = glm::vec3(0.5, 1.5, 1.0);
 	traj_control_p2 = glm::vec3(0.5, 3.0, 1.0);
-	traj_control_p3 = glm::vec3(-4.0, 10, 1.0);
+	traj_control_p3 = glm::vec3(-1.0, 10, 1.0);
 }
 
 Tema2::~Tema2()

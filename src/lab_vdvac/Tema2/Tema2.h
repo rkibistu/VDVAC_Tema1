@@ -114,10 +114,11 @@ namespace vdvac {
 	private:
 		// trajectory data
 		glm::vec3 traj_control_p0, traj_control_p1, traj_control_p2, traj_control_p3;
-		float _circleRadius = 1.0;
-		unsigned int traj_no_of_generated_points;
+		float _circleRadius = 2.0;
+		unsigned int traj_no_of_generated_points = 100;
 
-		// S(u) coeffiecients
+		
+		// S(u) coeffiecients (set the in cosntructor manually)
 		float _as3, _as2, _as1, _as0;
 		//T(u) coeffiecients
 		float _at3, _at2, _at1, _at0;
